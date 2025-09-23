@@ -1,14 +1,41 @@
 import express from 'express';
 import cors from 'cors';
-import records from './routes/records.js';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.js';
+import conn from './db/db.js';
 
-const PORT = process.env.PORT || 8000;
-const app = express();
+dotenv.config();
 
-app.use(cors());
-app.use(express.json());
-app.use("/records", records);
+class Server {
+  constructor() {
+    this.app = express();
+    this.port = process.env.PORT || 5050;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    this.middlewares();
+    this.routes();
+  }
+
+  middlewares() {
+    this.app.use(cors());
+    this.app.use(express.json());
+  }
+
+  routes() {
+    this.app.use("/auth", authRoutes);
+  }
+
+  async start() {
+    try {
+      await conn.connect();
+      this.app.listen(this.port, () => {
+        console.log(`Server running on port ${this.port}`);
+      });
+    } catch (err) {
+      console.error("Error arrancando el servidor:", err);
+      process.exit(1);
+    }
+  }
+}
+
+const server = new Server();
+export default server;
