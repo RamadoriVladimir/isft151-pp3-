@@ -1,7 +1,7 @@
 import RegisterViewComponent from "./components/registerViewComponent.js";
 import LoginViewComponent from "./components/loginViewComponent.js";
-import RegisterHandler from "./handlers/frontRegisterHandler.js";
-import LoginHandler from "./handlers/frontLoginHandler.js";
+import RegisterHandler from "./frontHandlers/frontRegisterHandler.js";
+import LoginHandler from "./frontHandlers/frontLoginHandler.js";
 
 customElements.define("register-view", RegisterViewComponent);
 customElements.define("login-view", LoginViewComponent);
