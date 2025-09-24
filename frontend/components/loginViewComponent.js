@@ -64,5 +64,6 @@ export default class LoginViewComponent extends HTMLElement {
 
   disconnectedCallback() {
     this.form.removeEventListener("submit", this.boundSubmit);
+    this.boundSubmit = null;
   }
 }

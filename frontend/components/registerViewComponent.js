@@ -74,5 +74,6 @@ export default class RegisterViewComponent extends HTMLElement {
 
   disconnectedCallback() {
     this.form.removeEventListener("submit", this.boundSubmit);
+    this.boundSubmit = null;
   }
 }
