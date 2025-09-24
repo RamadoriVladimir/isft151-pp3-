@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import conn from './db/db.js';
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -18,6 +20,16 @@ class Server {
   middlewares() {
     this.app.use(cors());
     this.app.use(express.json());
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    this.app.use(express.static(path.join(__dirname, "../frontend")));
+    this.app.use(this.requireCacheNoStore);
+  }
+
+  requireCacheNoStore(req, res, next) {
+    res.setHeader("Cache-Control", "no-store");
+    next();
   }
 
   routes() {

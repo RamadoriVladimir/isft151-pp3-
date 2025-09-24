@@ -47,7 +47,7 @@ class MongoDBConnection {
     const { email, password, username } = userData;
 
     if (!this.userDBcollection) {
-      throw new Error("La colección no está inicializada. Llama a connect() primero.");
+      throw new Error("La coleccion no está inicializada. Llama a connect() primero.");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

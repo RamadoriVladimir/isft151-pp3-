@@ -12,7 +12,7 @@ export default class LoginHandler {
         await conn.connect();
       }
 
-      const user = await this.validateUserData(email, password);
+      const user = await LoginHandler.validateUserData(email, password);
       if (!user) {
         return res.status(401).json({ message: "Credenciales inválidas" });
       }
