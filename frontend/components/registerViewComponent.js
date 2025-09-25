@@ -63,7 +63,7 @@ export default class RegisterViewComponent extends HTMLElement {
       this.messageBox.textContent = result.message;
     } catch (err) {
       console.error(err);
-      this.messageBox.textContent = "Error registrando usuario";
+      this.messageBox.textContent = err.message || "Error en registro";
     }
   }
 

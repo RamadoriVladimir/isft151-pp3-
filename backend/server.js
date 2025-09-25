@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth.js';
+import authRoutes from './routes/authRoutes.js';
 import conn from './db/db.js';
 import path from "path";
 import { fileURLToPath } from "url";

@@ -14,11 +14,11 @@ export default class LoginHandler {
 
       const user = await LoginHandler.validateUserData(email, password);
       if (!user) {
-        return res.status(401).json({ message: "Credenciales inválidas" });
+        return res.status(401).json({ message: "Credenciales invalidas" });
       }
 
       const token = LoginHandler.generateToken(user);
-
+      console.log("Usuario logueado:", user.email);
       return res.json(LoginHandler.returnLoginJson(user, token));
     } catch (err) {
       console.error(err);
