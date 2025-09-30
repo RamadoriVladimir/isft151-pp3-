@@ -58,7 +58,7 @@ class SQLiteConnection {
         FOREIGN KEY (users_id) REFERENCES users(id) ON DELETE CASCADE
       );
 
-      CREATE TABLE IF NOT EXISTS mdds (
+      CREATE TABLE IF NOT EXISTS molds (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name VARCHAR(100) NOT NULL,
         type VARCHAR(100) NOT NULL,
@@ -67,13 +67,13 @@ class SQLiteConnection {
         creation_date DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
-      CREATE TABLE IF NOT EXISTS mdds_collections (
+      CREATE TABLE IF NOT EXISTS molds_collections (
         collections_id INTEGER NOT NULL,
         molds_id INTEGER NOT NULL,
         KEY VARCHAR(45),
         PRIMARY KEY (collections_id, molds_id),
         FOREIGN KEY (collections_id) REFERENCES collections(id) ON DELETE CASCADE,
-        FOREIGN KEY (molds_id) REFERENCES mdds(id) ON DELETE CASCADE
+        FOREIGN KEY (molds_id) REFERENCES molds(id) ON DELETE CASCADE
       );
 
       CREATE TABLE IF NOT EXISTS drafts (
@@ -86,24 +86,24 @@ class SQLiteConnection {
         FOREIGN KEY (collections_id) REFERENCES collections(id) ON DELETE CASCADE
       );
 
-      CREATE TABLE IF NOT EXISTS mdds_drafts (
+      CREATE TABLE IF NOT EXISTS molds_drafts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         position_x DECIMAL(10,2),
         position_y DECIMAL(10,2),
         rotation DECIMAL(5,2),
         scaling DECIMAL(5,2),
         drafts_id INTEGER NOT NULL,
-        mdds_id INTEGER NOT NULL,
+        molds_id INTEGER NOT NULL,
         FOREIGN KEY (drafts_id) REFERENCES drafts(id) ON DELETE CASCADE,
-        FOREIGN KEY (mdds_id) REFERENCES mdds(id) ON DELETE CASCADE
+        FOREIGN KEY (molds_id) REFERENCES molds(id) ON DELETE CASCADE
       );
 
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_collections_users ON collections(users_id);
       CREATE INDEX IF NOT EXISTS idx_drafts_users ON drafts(users_id);
       CREATE INDEX IF NOT EXISTS idx_drafts_collections ON drafts(collections_id);
-      CREATE INDEX IF NOT EXISTS idx_mdds_drafts_drafts ON mdds_drafts(drafts_id);
-      CREATE INDEX IF NOT EXISTS idx_mdds_drafts_mdds ON mdds_drafts(mdds_id);
+      CREATE INDEX IF NOT EXISTS idx_molds_drafts_drafts ON molds_drafts(drafts_id);
+      CREATE INDEX IF NOT EXISTS idx_molds_drafts_molds ON molds_drafts(molds_id);
     `);
 
     console.log("Tablas inicializadas correctamente");
@@ -181,28 +181,28 @@ class SQLiteConnection {
     return result.lastID;
   }
 
-  async createMdd(name, type, width, height) {
+  async createMold(name, type, width, height) {
     if (!this.db) {
       throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
     }
 
     const result = await this.db.run(
-      `INSERT INTO mdds (name, type, width, height) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO molds (name, type, width, height) VALUES (?, ?, ?, ?)`,
       [name, type, width, height]
     );
 
     return result.lastID;
   }
 
-  async addMddToDraft(draftId, mddId, positionX, positionY, rotation, scaling) {
+  async addMoldToDraft(draftId, moldId, positionX, positionY, rotation, scaling) {
     if (!this.db) {
       throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
     }
 
     const result = await this.db.run(
-      `INSERT INTO mdds_drafts (position_x, position_y, rotation, scaling, drafts_id, mdds_id) 
+      `INSERT INTO molds_drafts (position_x, position_y, rotation, scaling, drafts_id, molds_id) 
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [positionX, positionY, rotation, scaling, draftId, mddId]
+      [positionX, positionY, rotation, scaling, draftId, moldId]
     );
 
     return result.lastID;
@@ -221,7 +221,7 @@ class SQLiteConnection {
       [userId]
     );
   }
-}
+}  
 
 const conn = new SQLiteConnection();
 export default conn;
