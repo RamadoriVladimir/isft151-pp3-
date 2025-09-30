@@ -1,34 +1,37 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import conn from "../db/db.js";
 import UserFactory from "../userFactory.js";
 
 export default class LoginHandler {
-  static async handleLogin(req, res) {
+  constructor(database) {
+    this.db = database;
+  }
+
+  async handleLogin(req, res) {
     try {
       const { email, password } = req.body;
-      
-      if (!conn.db) {
-        await conn.connect();
+
+      if (!this.db.db) {
+        await this.db.connect();
       }
 
-      const user = await LoginHandler.validateUserData(email, password);
+      const user = await this.validateUserData(email, password);
       if (!user) {
         return res.status(401).json({ message: "Credenciales invalidas" });
       }
 
-      const token = LoginHandler.generateToken(user);
+      const token = this.generateToken(user);
       console.log("Usuario logueado:", user.email);
       
-      return res.json(LoginHandler.returnLoginJson(user, token));
+      return res.json(this.returnLoginJson(user, token));
     } catch (err) {
       console.error(err);
       return res.status(500).json({ message: "Error en login" });
     }
   }
 
-  static async validateUserData(email, password) {
-    const emailRegistered = await conn.getUserByEmail(email);
+  async validateUserData(email, password) {
+    const emailRegistered = await this.db.getUserByEmail(email);
     if (!emailRegistered) return null;
 
     const user = UserFactory.createFromDB(emailRegistered);
@@ -38,7 +41,7 @@ export default class LoginHandler {
     return user;
   }
 
-  static generateToken(user) {
+  generateToken(user) {
     return jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET || "secret",
@@ -46,7 +49,7 @@ export default class LoginHandler {
     );
   }
 
-  static returnLoginJson(user, token) {
+  returnLoginJson(user, token) {
     return {
       message: "Login exitoso",
       token,

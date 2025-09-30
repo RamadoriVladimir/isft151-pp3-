@@ -1,22 +1,24 @@
-import conn from "../db/db.js";
+export class RegisterHandler {
+  constructor(database) {
+    this.db = database;
+  }
 
-export default class RegisterHandler {
-  static async validateRegister(req, res) {
+  async validateRegister(req, res) {
     const { email, password } = req.body;
     try {
-      if (!conn.db) {
-        await conn.connect();
+      if (!this.db.db) {
+        await this.db.connect();
       }
 
-      const emailExists = await conn.getUserByEmail(email);
+      const emailExists = await this.db.getUserByEmail(email);
 
       if (emailExists) {
         return res.status(400).json({ message: "El email ya esta registrado" });
       }
 
-      RegisterHandler.checkPasswordStrength(password);
+      this.checkPasswordStrength(password);
 
-      await conn.insertUserToDB(req.body);
+      await this.db.insertUserToDB(req.body);
 
       return res.status(201).json({ message: "Usuario registrado con exito" });
     } catch (err) {
@@ -25,7 +27,7 @@ export default class RegisterHandler {
     }
   }
   
-  static checkPasswordStrength(password) {
+  checkPasswordStrength(password) {
     const minLength = 8;
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
