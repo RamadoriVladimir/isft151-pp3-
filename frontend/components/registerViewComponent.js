@@ -1,8 +1,8 @@
 export default class RegisterViewComponent extends HTMLElement {
-  constructor(registerHandler) {
+  constructor(registerDispatcher) {
     super();
-    if (!registerHandler) throw new Error("RegisterHandler is required");
-    this.registerHandler = registerHandler;
+    if (!registerDispatcher) throw new Error("RegisterDispatcher is required");
+    this.registerDispatcher = registerDispatcher;
 
     this.container = document.createElement("div");
     this.container.className = "register-container";
@@ -59,7 +59,7 @@ export default class RegisterViewComponent extends HTMLElement {
     const password = this.inputPassword.value;
 
     try {
-      const result = await this.registerHandler.register({ username, email, password });
+      const result = await this.registerDispatcher.register({ username, email, password });
       this.messageBox.textContent = result.message;
     } catch (err) {
       console.error(err);

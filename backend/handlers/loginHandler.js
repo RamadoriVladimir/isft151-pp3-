@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import conn from "../db/db.js";
 import UserFactory from "../userFactory.js";
@@ -8,7 +8,7 @@ export default class LoginHandler {
     try {
       const { email, password } = req.body;
       
-      if (!conn.userDBcollection) {
+      if (!conn.db) {
         await conn.connect();
       }
 
@@ -19,6 +19,7 @@ export default class LoginHandler {
 
       const token = LoginHandler.generateToken(user);
       console.log("Usuario logueado:", user.email);
+      
       return res.json(LoginHandler.returnLoginJson(user, token));
     } catch (err) {
       console.error(err);
@@ -27,7 +28,7 @@ export default class LoginHandler {
   }
 
   static async validateUserData(email, password) {
-    const emailRegistered = await conn.userDBcollection.findOne({ email });
+    const emailRegistered = await conn.getUserByEmail(email);
     if (!emailRegistered) return null;
 
     const user = UserFactory.createFromDB(emailRegistered);

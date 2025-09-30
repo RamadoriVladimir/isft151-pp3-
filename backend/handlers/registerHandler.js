@@ -1,23 +1,24 @@
 import conn from "../db/db.js";
 
 export default class RegisterHandler {
-  static async validateRegister(req, res,) {
+  static async validateRegister(req, res) {
     const { email, password } = req.body;
     try {
-      if (!conn.userDBcollection) {
+      if (!conn.db) {
         await conn.connect();
       }
-      const emailExists = await conn.userDBcollection.findOne({ email });
+
+      const emailExists = await conn.getUserByEmail(email);
 
       if (emailExists) {
-        return res.status(400).json({ message: "El email ya está registrado" });
+        return res.status(400).json({ message: "El email ya esta registrado" });
       }
 
       RegisterHandler.checkPasswordStrength(password);
 
       await conn.insertUserToDB(req.body);
 
-      return res.status(201).json({ message: "Usuario registrado con éxito" });
+      return res.status(201).json({ message: "Usuario registrado con exito" });
     } catch (err) {
       console.error(err);
       return res.status(400).json({ message: err.message || "Error registrando usuario" });
@@ -35,16 +36,16 @@ export default class RegisterHandler {
       throw new Error(`La contraseña debe tener al menos ${minLength} caracteres`);
     }
     if (!hasUpperCase) {
-      throw new Error("La contraseña debe contener al menos una letra mayúscula");
+      throw new Error("La contraseña debe contener al menos una letra mayuscula");
     }
     if (!hasLowerCase) {
-      throw new Error("La contraseña debe contener al menos una letra minúscula");
+      throw new Error("La contraseña debe contener al menos una letra minuscula");
     }
     if (!hasNumbers) {
-      throw new Error("La contraseña debe contener al menos un número");
+      throw new Error("La contraseña debe contener al menos un numero");
     }
     if (!hasSpecialChars) {
-      throw new Error("La contraseña debe contener al menos un carácter especial");
+      throw new Error("La contraseña debe contener al menos un caracter especial");
     }
     return true;
   }

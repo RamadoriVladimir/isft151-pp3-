@@ -48,6 +48,15 @@ class Server {
       process.exit(1);
     }
   }
+
+  async stop() {
+    try {
+      await conn.disconnect();
+      console.log("Servidor detenido correctamente");
+    } catch (err) {
+      console.error("Error deteniendo el servidor:", err);
+    }
+  }
 }
 
 const server = new Server();

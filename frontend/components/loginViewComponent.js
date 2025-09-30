@@ -1,8 +1,8 @@
 export default class LoginViewComponent extends HTMLElement {
-  constructor(loginHandler) {
+  constructor(loginDispatcher) {
     super();
-    if (!loginHandler) throw new Error("LoginHandler is required");
-    this.loginHandler = loginHandler;
+    if (!loginDispatcher) throw new Error("LoginDispatcher is required");
+    this.loginDispatcher = loginDispatcher;
 
     this.container = document.createElement("div");
     this.container.className = "login-container";
@@ -49,7 +49,7 @@ export default class LoginViewComponent extends HTMLElement {
     const password = this.inputPassword.value;
 
     try {
-      const result = await this.loginHandler.login({ email, password });
+      const result = await this.loginDispatcher.login({ email, password });
       this.messageBox.textContent = result.message;
     } catch (err) {
       console.error(err);
