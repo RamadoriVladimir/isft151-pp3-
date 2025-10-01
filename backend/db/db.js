@@ -194,6 +194,16 @@ class SQLiteConnection {
     return result.lastID;
   }
 
+  async getAllMolds() {
+    if (!this.db) {
+      throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
+    }
+
+    return await this.db.get(
+      `SELECT * FROM molds`
+    );
+  }
+
   async addMoldToDraft(draftId, moldId, positionX, positionY, rotation, scaling) {
     if (!this.db) {
       throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
