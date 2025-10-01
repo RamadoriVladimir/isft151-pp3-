@@ -8,10 +8,10 @@ export default class AuthController {
   }
 
   serveLogin(req, res) {
-    res.sendFile(path.join(this.__dirname, "../frontend/login.html"));
+    res.sendFile(path.join(this.__dirname, "../login.html"));
   }
 
   serveRegister(req, res) {
-    res.sendFile(path.join(this.__dirname, "../frontend/register.html"));
+    res.sendFile(path.join(this.__dirname, "../register.html"));
   }
 }
