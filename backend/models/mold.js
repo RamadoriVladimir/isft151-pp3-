@@ -7,11 +7,11 @@ export default class Mold {
     }
 
     toJSON() {
-    return {
-        id: this.id,
-        name: this.name,
-        description: this.description,
-        creation_date: this.creation_date,
-    };
-  }
+        return {
+            id: this.id,
+            name: this.name,
+            description: this.description,
+            creation_date: this.creation_date,
+        };
+    }
 }        
