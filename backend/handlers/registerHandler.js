@@ -1,54 +1,37 @@
 export class RegisterHandler {
-    constructor(database) {
+    constructor(database, user) {
         this.db = database;
+        this.model = user;
     }
 
     async validateRegister(req, res) {
-        const { email, password } = req.body;
+        const { name, email, password, role } = req.body;
         try {
-        if (!this.db.db) {
-            await this.db.connect();
-        }
+            if (!email || !password) {
+                throw new Error("Email y password son requeridos");
+            } 
 
-        const emailExists = await this.db.getUserByEmail(email);
+            let emailExists = this.model.checkEmailExists(email, this.db);
+            if (emailExists) {
+                return res.status(400).json({ message: "El email ya esta registrado" });
+            }
 
-        if (emailExists) {
-            return res.status(400).json({ message: "El email ya esta registrado" });
-        }
+            const userData = {
+                name:req.body.username || name,
+                email,
+                password,
+                role: role || "user",
+            }
 
-        this.checkPasswordStrength(password);
+            const tempUser = new this.model({ ...userData });
+            tempUser.checkPasswordStrength(password);
 
-        await this.db.insertUserToDB(req.body);
+            await this.model.create(this.db, userData);
 
-        return res.status(201).json({ message: "Usuario registrado con exito" });
+            return res.status(201).json({ message: "Usuario registrado con exito" });
         } catch (err) {
-        console.error(err);
+            console.error(err);
             return res.status(400).json({ message: err.message || "Error registrando usuario" });
         }
-    }
-    
-    checkPasswordStrength(password) {
-        const minLength = 8;
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumbers = /\d/.test(password);
-        const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-        if (password.length < minLength) {
-            throw new Error(`La contraseña debe tener al menos ${minLength} caracteres`);
-        }
-        if (!hasUpperCase) {
-            throw new Error("La contraseña debe contener al menos una letra mayuscula");
-        }
-        if (!hasLowerCase) {
-            throw new Error("La contraseña debe contener al menos una letra minuscula");
-        }
-        if (!hasNumbers) {
-            throw new Error("La contraseña debe contener al menos un numero");
-        }
-        if (!hasSpecialChars) {
-            throw new Error("La contraseña debe contener al menos un caracter especial");
-        }
-        return true;
     }
 }

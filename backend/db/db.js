@@ -1,8 +1,6 @@
-
 import bcrypt from "bcrypt";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
-import UserFactory from "../userFactory.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -119,7 +117,7 @@ class SQLiteConnection {
         }
 
         const hashedPassword = await bcrypt.hash(userData.password, 10);
-        const user = UserFactory.createFromRequest(userData, hashedPassword);
+        const user = { ...userData, password: hashedPassword };
 
         if (!user.name || !user.email) {
             throw new Error("Name y email son requeridos");

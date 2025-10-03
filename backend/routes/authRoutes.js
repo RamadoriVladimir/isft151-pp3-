@@ -2,12 +2,13 @@ import express from "express";
 import { RegisterHandler } from "../handlers/registerHandler.js";
 import LoginHandler from "../handlers/loginHandler.js";
 import conn from "../db/db.js";
+import User from "../models/user.js";
 import AuthController from "../../frontend/controllers/authController.js";
 
 const router = express.Router();
 
-const loginHandler = new LoginHandler(conn);
-const registerHandler = new RegisterHandler(conn);
+const loginHandler = new LoginHandler(conn, User);
+const registerHandler = new RegisterHandler(conn, User);
 
 const pageController = new AuthController();
 

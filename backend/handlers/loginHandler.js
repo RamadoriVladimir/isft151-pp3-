@@ -1,44 +1,36 @@
-import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import UserFactory from "../userFactory.js";
 
 export default class LoginHandler {
-    constructor(database) {
+    constructor(database, user) {
         this.db = database;
+        this.model = user;
     }
 
     async handleLogin(req, res) {
-        try {
         const { email, password } = req.body;
+        try {
+            if (!this.db.db) {
+                await this.db.connect();
+            }
 
-        if (!this.db.db) {
-            await this.db.connect();
-        }
+            const userData = {
+                email,
+                password
+            };
 
-        const user = await this.validateUserData(email, password);
-        if (!user) {
-            return res.status(401).json({ message: "Credenciales invalidas" });
-        }
+            const user = await this.model.validateUserData(userData, this.db);
+            if (!user) {
+                return res.status(401).json({ message: "Credenciales invalidas" });
+            }
 
-        const token = this.generateToken(user);
-        console.log("Usuario logueado:", user.email);
-        
-        return res.json(this.returnLoginJson(user, token));
+            const token = this.generateToken(user);
+            console.log("Usuario logueado:", user.email);
+            
+            return res.json(this.returnLoginJson(user, token));
         } catch (err) {
-        console.error(err);
+            console.error(err);
             return res.status(500).json({ message: "Error en login" });
         }
-    }
-
-    async validateUserData(email, password) {
-        const emailRegistered = await this.db.getUserByEmail(email);
-        if (!emailRegistered) return null;
-
-        const user = UserFactory.createFromDB(emailRegistered);
-        const passwordMatch = await bcrypt.compare(password, user.password);
-
-        if (!passwordMatch) return null;
-        return user;
     }
 
     generateToken(user) {
