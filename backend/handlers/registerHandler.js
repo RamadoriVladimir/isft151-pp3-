@@ -7,28 +7,23 @@ export class RegisterHandler {
     async validateRegister(req, res) {
         const { name, email, password, role } = req.body;
         try {
-            if (!email || !password) {
-                throw new Error("Email y password son requeridos");
-            } 
-
-            let emailExists = this.model.checkEmailExists(email, this.db);
-            if (emailExists) {
-                return res.status(400).json({ message: "El email ya esta registrado" });
-            }
-
             const userData = {
-                name:req.body.username || name,
+                name: req.body.username || name,
                 email,
                 password,
                 role: role || "user",
             }
 
-            const tempUser = new this.model({ ...userData });
-            tempUser.checkPasswordStrength(password);
+            const validatedData = this.model.validateInput(userData);
+            let emailExists = await this.model.checkEmailExists(userData, this.db);
 
-            await this.model.create(this.db, userData);
+            if (emailExists) {
+                return res.status(400).json({ message: "El email ya está registrado" });
+            }
 
-            return res.status(201).json({ message: "Usuario registrado con exito" });
+            await this.model.create(this.db, validatedData);
+
+            return res.status(201).json({ message: "Usuario registrado con éxito" });
         } catch (err) {
             console.error(err);
             return res.status(400).json({ message: err.message || "Error registrando usuario" });

@@ -9,22 +9,21 @@ export default class LoginHandler {
     async handleLogin(req, res) {
         const { email, password } = req.body;
         try {
-            if (!this.db.db) {
-                await this.db.connect();
-            }
-
+            if (!email || !password) {
+                throw new Error("Email y password son requeridos");
+            } 
+            
             const userData = {
                 email,
                 password
             };
 
-            const user = await this.model.validateUserData(userData, this.db);
+            const user = await this.model.validateUserData(userData);
             if (!user) {
                 return res.status(401).json({ message: "Credenciales invalidas" });
             }
 
             const token = this.generateToken(user);
-            console.log("Usuario logueado:", user.email);
             
             return res.json(this.returnLoginJson(user, token));
         } catch (err) {
