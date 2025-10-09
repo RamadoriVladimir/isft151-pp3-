@@ -1,9 +1,20 @@
-export default class LoginViewComponent extends HTMLElement {
-    constructor(loginDispatcher) {
-        super();
-        if (!loginDispatcher) throw new Error("LoginDispatcher is required");
-        this.loginDispatcher = loginDispatcher;
+import LoginController from "../controllers/loginController.js";
 
+export default class LoginViewComponent extends HTMLElement {
+    constructor(modelInstance) {
+        super();
+
+        if (!modelInstance) {
+            throw new Error("LoginModel instance is required");
+        }
+
+        // Composición: el controlador vive dentro de la vista
+        this.innerController = new LoginController(this, modelInstance);
+
+        this.buildUI();
+    }
+
+    buildUI() {
         this.container = document.createElement("div");
         this.container.className = "login-container";
 
@@ -42,28 +53,38 @@ export default class LoginViewComponent extends HTMLElement {
         this.appendChild(this.container);
     }
 
-    async onFormSubmit(event) {
-        event.preventDefault();
-
-        const email = this.inputEmail.value;
-        const password = this.inputPassword.value;
-
-        try {
-        const result = await this.loginDispatcher.login({ email, password });
-        this.messageBox.textContent = result.message;
-        } catch (err) {
-        console.error(err);
-        this.messageBox.textContent = "Error en login";
-        }
-    }
-
     connectedCallback() {
-        this.boundSubmit = this.onFormSubmit.bind(this);
+        this.boundSubmit = this.innerController.onLoginFormSubmit.bind(this.innerController);
         this.form.addEventListener("submit", this.boundSubmit);
+        this.innerController.init();
     }
 
     disconnectedCallback() {
         this.form.removeEventListener("submit", this.boundSubmit);
         this.boundSubmit = null;
+        this.innerController.release();
+    }
+
+    getEmailValue() {
+        return this.inputEmail.value.trim();
+    }
+
+    getPasswordValue() {
+        return this.inputPassword.value;
+    }
+
+    showMessage(message, type = "info") {
+        this.messageBox.textContent = message;
+        this.messageBox.className = `message-box ${type}`;
+    }
+
+    setLoading(isLoading) {
+        this.submitBtn.disabled = isLoading;
+        this.submitBtn.textContent = isLoading ? "Cargando..." : "Iniciar Sesión";
+    }
+
+    clearForm() {
+        this.inputEmail.value = "";
+        this.inputPassword.value = "";
     }
 }

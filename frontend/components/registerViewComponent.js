@@ -1,9 +1,18 @@
-export default class RegisterViewComponent extends HTMLElement {
-    constructor(registerDispatcher) {
-        super();
-        if (!registerDispatcher) throw new Error("RegisterDispatcher is required");
-        this.registerDispatcher = registerDispatcher;
+import { RegisterController } from "../controllers/registerController.js";
 
+export default class RegisterViewComponent extends HTMLElement {
+    constructor(modelInstance) {
+        super();
+
+        if (!modelInstance) {
+            throw new Error("RegisterModel instance is required");
+        }
+        this.innerController = new RegisterController(this, modelInstance);
+
+        this.buildUI();
+    }
+
+    buildUI() {
         this.container = document.createElement("div");
         this.container.className = "register-container";
 
@@ -49,31 +58,46 @@ export default class RegisterViewComponent extends HTMLElement {
         this.appendChild(this.container);
     }
 
-    async onFormSubmit(event) {
-        event.preventDefault();
-
-        if (event.submitter !== this.submitBtn) return;
-
-        const username = this.inputUsername.value;
-        const email = this.inputEmail.value;
-        const password = this.inputPassword.value;
-
-        try {
-        const result = await this.registerDispatcher.register({ username, email, password });
-        this.messageBox.textContent = result.message;
-        } catch (err) {
-        console.error(err);
-        this.messageBox.textContent = err.message || "Error en registro";
-        }
-    }
-
     connectedCallback() {
-        this.boundSubmit = this.onFormSubmit.bind(this);
+        this.boundSubmit = this.innerController.onRegisterFormSubmit.bind(this.innerController);
         this.form.addEventListener("submit", this.boundSubmit);
+
+        this.innerController.init();
     }
 
     disconnectedCallback() {
         this.form.removeEventListener("submit", this.boundSubmit);
         this.boundSubmit = null;
+
+        this.innerController.release();
+    }
+
+    getUsernameValue() {
+        return this.inputUsername.value.trim();
+    }
+
+    getEmailValue() {
+        return this.inputEmail.value.trim();
+    }
+
+    getPasswordValue() {
+        return this.inputPassword.value;
+    }
+
+    showMessage(message, type = "info") {
+        this.messageBox.textContent = message;
+        this.messageBox.className = `message-box ${type}`;
+    }
+
+    setLoading(isLoading) {
+        this.submitBtn.disabled = isLoading;
+        this.submitBtn.textContent = isLoading ? "Cargando..." : "Registrarse";
+    }
+
+    clearForm() {
+        this.inputUsername.value = "";
+        this.inputEmail.value = "";
+        this.inputPassword.value = "";
     }
 }
+

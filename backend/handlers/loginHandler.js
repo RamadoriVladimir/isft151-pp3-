@@ -7,44 +7,50 @@ export default class LoginHandler {
     }
 
     async handleLogin(req, res) {
-        const { email, password } = req.body;
         try {
-            if (!email || !password) {
-                throw new Error("Email y password son requeridos");
-            } 
-            
+            this.model.validateAPIInput("login", req);
+
+            const { email, password } = req.body;
             const userData = {
                 email,
                 password
             };
+            const user = await this.model.validateUserData(userData, this.db);
 
-            const user = await this.model.validateUserData(userData);
             if (!user) {
-                return res.status(401).json({ message: "Credenciales invalidas" });
+                const errorResponse = { message: "Credenciales invalidas" };
+                this.model.validateAPIOutput("login", 401, errorResponse);
+
+                return res.status(401).json(errorResponse);
             }
 
             const token = this.generateToken(user);
-            
-            return res.json(this.returnLoginJson(user, token));
+            const successResponse = this.returnLoginJson(user, token);
+            this.model.validateAPIOutput("login", 200, successResponse);
+
+            return res.json(successResponse);
         } catch (err) {
             console.error(err);
-            return res.status(500).json({ message: "Error en login" });
+            const errorResponse = { message: err.message || "Error en login" };
+            this.model.validateAPIOutput("login", 500, errorResponse);
+
+            return res.status(500).json(errorResponse);
         }
     }
 
     generateToken(user) {
         return jwt.sign(
-        { id: user.id, email: user.email },
-        process.env.JWT_SECRET || "secret",
-        { expiresIn: "1h" }
+            { id: user.id, email: user.email },
+            process.env.JWT_SECRET || "secret",
+            { expiresIn: "1h" }
         );
     }
 
     returnLoginJson(user, token) {
         return {
-        message: "Login exitoso",
-        token,
-        user: user.toJSON(),
+            message: "Login exitoso",
+            token,
+            user: user.toJSON(),
         };
     }
 }

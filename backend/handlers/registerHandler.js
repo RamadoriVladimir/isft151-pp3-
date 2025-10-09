@@ -5,28 +5,37 @@ export class RegisterHandler {
     }
 
     async validateRegister(req, res) {
-        const { name, email, password, role } = req.body;
         try {
+            this.model.validateAPIInput("register", req);
+
+            const { name, email, password, role } = req.body;
             const userData = {
                 name: req.body.username || name,
                 email,
                 password,
                 role: role || "user",
-            }
-
+            };
             const validatedData = this.model.validateInput(userData);
-            let emailExists = await this.model.checkEmailExists(userData, this.db);
+            const emailExists = await this.model.checkEmailExists(userData, this.db);
 
             if (emailExists) {
-                return res.status(400).json({ message: "El email ya está registrado" });
+                const errorResponse = { message: "El email ya está registrado" };
+                this.model.validateAPIOutput("register", 400, errorResponse);
+                
+                return res.status(400).json(errorResponse);
             }
 
             await this.model.create(this.db, validatedData);
+            const successResponse = { message: "Usuario registrado con éxito" };
 
-            return res.status(201).json({ message: "Usuario registrado con éxito" });
+            this.model.validateAPIOutput("register", 201, successResponse);
+            return res.status(201).json(successResponse);
         } catch (err) {
             console.error(err);
-            return res.status(400).json({ message: err.message || "Error registrando usuario" });
+            const errorResponse = { message: err.message || "Error registrando usuario" };
+            this.model.validateAPIOutput("register", 400, errorResponse);
+
+            return res.status(400).json(errorResponse);
         }
     }
 }

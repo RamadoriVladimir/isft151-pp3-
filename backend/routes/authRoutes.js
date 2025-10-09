@@ -3,17 +3,26 @@ import { RegisterHandler } from "../handlers/registerHandler.js";
 import LoginHandler from "../handlers/loginHandler.js";
 import conn from "../db/db.js";
 import User from "../models/user.js";
-import AuthController from "../../frontend/controllers/authController.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const router = express.Router();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const loginHandler = new LoginHandler(conn, User);
 const registerHandler = new RegisterHandler(conn, User);
 
-const pageController = new AuthController();
+function serveRegister(req, res) {
+    res.sendFile(path.join(__dirname, "../../frontend/register.html"));
+}
 
-router.get("/login", pageController.serveLogin.bind(pageController));
-router.get("/register", pageController.serveRegister.bind(pageController));
+function serveLogin(req, res) {
+    res.sendFile(path.join(__dirname, "../../frontend/login.html"));
+}
+
+router.get("/register", serveRegister);
+router.get("/login", serveLogin);
 
 router.post("/register", registerHandler.validateRegister.bind(registerHandler));
 router.post("/login", loginHandler.handleLogin.bind(loginHandler));

@@ -11,6 +11,173 @@ export default class User {
         this.db = db;
     }
 
+    static getAPISpecifications() {
+        return {
+            login: {
+                method: "POST",
+                input: {
+                    required: ["email", "password"],
+                    schema: {
+                        email: { type: "string", format: "email" },
+                        password: { type: "string", minLength: 1 }
+                    }
+                },
+                output: {
+                    success: {
+                        status: 200,
+                        schema: {
+                            message: { type: "string" },
+                            token: { type: "string" },
+                            user: {
+                                type: "object",
+                                properties: ["id", "name", "email", "role", "creation_date"]
+                            }
+                        }
+                    },
+                    error: {
+                        status: [401, 500],
+                        schema: {
+                            message: { type: "string" }
+                        }
+                    }
+                }
+            },
+            register: {
+                method: "POST",
+                input: {
+                    required: ["email", "password"],
+                    optional: ["name", "username"],
+                    schema: {
+                        name: { type: "string", minLength: 1, maxLength: 50 },
+                        username: { type: "string", minLength: 1, maxLength: 50 },
+                        email: { type: "string", format: "email", maxLength: 100 },
+                        password: { type: "string", minLength: 8 },
+                        role: { type: "string", enum: ["admin", "user", "moderator"] }
+                    }
+                },
+                output: {
+                    success: {
+                        status: 201,
+                        schema: {
+                            message: { type: "string" }
+                        }
+                    },
+                    error: {
+                        status: [400],
+                        schema: {
+                            message: { type: "string" }
+                        }
+                    }
+                }
+            }
+        };
+    }
+
+    static validateAPIInput(endpoint, req) {
+        const specs = this.getAPISpecifications();
+        const spec = specs[endpoint];
+
+        if (!spec) {
+            throw new Error(`Endpoint ${endpoint} no tiene especificación definida`);
+        }
+        if (req.method !== spec.method) {
+            throw new Error(`Método HTTP inválido. Se esperaba ${spec.method}, se recibió ${req.method}`);
+        }
+
+        const data = req.body;
+
+        for (const field of spec.input.required) {
+            if (!data[field]) {
+                throw new Error(`Campo requerido faltante: ${field}`);
+            }
+        }
+        for (const field in data) {
+            if (spec.input.schema[field]) {
+                this.validateField(field, data[field], spec.input.schema[field]);
+            }
+        }
+
+        return true;
+    }
+
+    static validateField(fieldName, value, schema) {
+        if (schema.type === "string" && typeof value !== "string") {
+            throw new Error(`${fieldName} debe ser de tipo string`);
+        }
+        if (schema.format === "email") {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                throw new Error(`${fieldName} debe ser un email válido`);
+            }
+        }
+        if (schema.minLength && value.length < schema.minLength) {
+            throw new Error(`${fieldName} debe tener al menos ${schema.minLength} caracteres`);
+        }
+        if (schema.maxLength && value.length > schema.maxLength) {
+            throw new Error(`${fieldName} no debe exceder ${schema.maxLength} caracteres`);
+        }
+        if (schema.enum && !schema.enum.includes(value)) {
+            throw new Error(`${fieldName} debe ser uno de: ${schema.enum.join(", ")}`);
+        }
+        return true;
+    }
+
+    static validateAPIOutput(endpoint, status, data) {
+        const specs = this.getAPISpecifications();
+        const spec = specs[endpoint];
+
+        if (!spec) {
+            throw new Error(`Endpoint ${endpoint} no tiene especificación definida`);
+        }
+
+        let outputSpec;
+        
+        if (status >= 200 && status < 300) {
+            outputSpec = spec.output.success;
+        } else {
+            outputSpec = spec.output.error;
+        }
+
+        const expectedStatus = Array.isArray(outputSpec.status) 
+            ? outputSpec.status 
+            : [outputSpec.status];
+
+        if (!expectedStatus.includes(status)) {
+            throw new Error(`Status code ${status} no esperado para ${endpoint}`);
+        }
+
+        this.validateOutputSchema(data, outputSpec.schema);
+
+        return true;
+    }
+
+    static validateOutputSchema(data, schema) {
+        for (const field in schema) {
+            const fieldSpec = schema[field];
+
+            if (!data.hasOwnProperty(field)) {
+                throw new Error(`Campo requerido en salida: ${field}`);
+            }
+            if (fieldSpec.type === "string" && typeof data[field] !== "string") {
+                throw new Error(`${field} en salida debe ser string`);
+            }
+            if (fieldSpec.type !== "object") return;
+
+            if (typeof data[field] !== "object" || data[field] === null) {
+                throw new Error(`${field} en salida debe ser object`);
+            }
+            if (!fieldSpec.properties) return;
+
+            for (const prop of fieldSpec.properties) {
+                if (!Object.prototype.hasOwnProperty.call(data[field], prop)) {
+                    throw new Error(`Propiedad ${prop} faltante en ${field}`);
+                }
+            }
+        }
+
+        return true;
+    }
+
     toJSON() {
         return {
             id: this.id,
@@ -121,7 +288,7 @@ export default class User {
         const row = await db.getUserByEmail(userData.email);
         if (!row) throw new Error("Credenciales invalidas");
 
-        const user = this.createInstanceFromRow(row);
+        const user = await this.createInstanceFromRow(row);
         const passwordMatch = await this.verifyPassword(userData.password, user.password);
         if (!passwordMatch) throw new Error("Credenciales invalidas");
 

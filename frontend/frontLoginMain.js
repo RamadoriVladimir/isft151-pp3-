@@ -1,12 +1,12 @@
 import LoginViewComponent from "./components/loginViewComponent.js";
-import LoginDispatcher from "./Dispatcher/LoginDispatcher.js";
+import LoginModel from "./models/loginModel.js";
 
 customElements.define("login-view", LoginViewComponent);
 
 function main() {
-    const loginDispatcher = new LoginDispatcher();
-    const login = new LoginViewComponent(loginDispatcher);
-    document.body.appendChild(login);
+    const loginModel = new LoginModel();
+    const loginView = new LoginViewComponent(loginModel);
+    document.body.appendChild(loginView);
 }
 
 window.onload = main;
