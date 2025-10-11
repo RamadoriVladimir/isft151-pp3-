@@ -13,6 +13,8 @@ export default class RegisterViewComponent extends HTMLElement {
     }
 
     buildUI() {
+        this.attachShadow({ mode: "open" });
+
         this.container = document.createElement("div");
         this.container.className = "register-container";
 
@@ -46,6 +48,17 @@ export default class RegisterViewComponent extends HTMLElement {
         this.messageBox = document.createElement("div");
         this.messageBox.className = "message-box";
 
+        this.loginContainer = document.createElement("div");
+        this.loginContainer.className = "login-container-link";
+
+        let redirectLoginUrl = "http://localhost:5050/auth/login";
+
+        this.loginLink = document.createElement("a");
+        this.loginLink.href = redirectLoginUrl ;
+        this.loginLink.textContent = "¿Ya tenes una cuenta? Inicia sesión";
+
+        this.loginContainer.appendChild(this.loginLink);
+
         this.form.appendChild(this.inputUsername);
         this.form.appendChild(this.inputEmail);
         this.form.appendChild(this.inputPassword);
@@ -53,9 +66,72 @@ export default class RegisterViewComponent extends HTMLElement {
 
         this.container.appendChild(this.registerTitle);
         this.container.appendChild(this.form);
+        this.container.appendChild(this.loginContainer);
         this.container.appendChild(this.messageBox);
 
         this.appendChild(this.container);
+
+        const style = document.createElement("style");
+        style.textContent = `
+            .register-container {
+                width: 300px;
+                margin: 50px auto;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-radius: 10px;
+                background: #f9f9f9;
+                font-family: Arial, sans-serif;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            }
+            .register-container h2 {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .register-container form {
+                display: flex;
+                flex-direction: column;
+            }
+            .register-container input {
+                padding: 10px;
+                margin: 8px 0;
+                border: 1px solid #aaa;
+                border-radius: 5px;
+                font-size: 14px;
+            }
+            .register-container button {
+                padding: 10px;
+                margin-top: 12px;
+                background: #28a745;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            .register-container button:hover {
+                background: #218838;
+            }
+            .message-box {
+                margin-top: 15px;
+                font-size: 14px;
+                text-align: center;
+                color: red;
+            }
+            .login-container-link {
+                margin-top: 15px;
+                text-align: center;
+            }
+            .login-container-link a {
+                color: #007BFF;
+                text-decoration: none;
+                font-size: 14px;
+            }
+            .login-container-link a:hover {
+                text-decoration: underline;
+            }
+        `;
+
+        this.shadowRoot.appendChild(style);
+        this.shadowRoot.appendChild(this.container);
     }
 
     connectedCallback() {
