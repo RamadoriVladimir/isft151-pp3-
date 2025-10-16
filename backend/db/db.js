@@ -38,13 +38,11 @@ class SQLiteConnection {
 
     async initializeTables() {
         try {
-            // Primero, intentar agregar la columna svg_path si no existe
             await this.db.exec(`
                 ALTER TABLE molds ADD COLUMN svg_path VARCHAR(300);
             `);
             console.log("Columna svg_path agregada a la tabla molds");
         } catch (err) {
-            // Si la columna ya existe, esto fallará, pero es normal
             if (!err.message.includes("duplicate column")) {
                 console.warn("Nota: Columna svg_path podría ya existir en molds");
             }
