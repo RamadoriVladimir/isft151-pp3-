@@ -1,13 +1,11 @@
 import LoginController from "../controllers/loginController.js";
 
 export default class LoginViewComponent extends HTMLElement {
-    constructor(modelInstance) {
+    constructor() {
         super();
 
-        if (!modelInstance) {
-            throw new Error("LoginModel instance is required");
-        }
-        this.innerController = new LoginController(this, modelInstance);
+        this.modelInstance = null;
+        this.innerController = null;
 
         this.buildUI();
     }
@@ -45,10 +43,8 @@ export default class LoginViewComponent extends HTMLElement {
         this.registerContainer = document.createElement("div");
         this.registerContainer.className = "register-container";
 
-        let redirectRegisterUrl = "http://localhost:5050/auth/register";
-
         this.registerLink = document.createElement("a");
-        this.registerLink.href = redirectRegisterUrl;
+        this.registerLink.href = "/auth/register";
         this.registerLink.textContent = "¿No tenes una cuenta? Regístrate";
 
         this.registerContainer.appendChild(this.registerLink);
@@ -127,15 +123,34 @@ export default class LoginViewComponent extends HTMLElement {
     }
 
     connectedCallback() {
+        // Esperar a que el modelo esté disponible
+        this.checkModelAndInit();
+    }
+
+    checkModelAndInit() {
+        if (this.modelInstance) {
+            this.initializeController();
+        } else {
+            setTimeout(() => this.checkModelAndInit(), 10);
+        }
+    }
+
+    initializeController() {
+        this.innerController = new LoginController(this, this.modelInstance);
+
         this.boundSubmit = this.innerController.onLoginFormSubmit.bind(this.innerController);
         this.form.addEventListener("submit", this.boundSubmit);
         this.innerController.init();
     }
 
     disconnectedCallback() {
-        this.form.removeEventListener("submit", this.boundSubmit);
-        this.boundSubmit = null;
-        this.innerController.release();
+        if (this.boundSubmit) {
+            this.form.removeEventListener("submit", this.boundSubmit);
+            this.boundSubmit = null;
+        }
+        if (this.innerController) {
+            this.innerController.release();
+        }
     }
 
     getEmailValue() {

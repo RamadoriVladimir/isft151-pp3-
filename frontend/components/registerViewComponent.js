@@ -1,13 +1,11 @@
 import { RegisterController } from "../controllers/registerController.js";
 
 export default class RegisterViewComponent extends HTMLElement {
-    constructor(modelInstance) {
+    constructor() {
         super();
 
-        if (!modelInstance) {
-            throw new Error("RegisterModel instance is required");
-        }
-        this.innerController = new RegisterController(this, modelInstance);
+        this.modelInstance = null;
+        this.innerController = null;
 
         this.buildUI();
     }
@@ -51,10 +49,8 @@ export default class RegisterViewComponent extends HTMLElement {
         this.loginContainer = document.createElement("div");
         this.loginContainer.className = "login-container-link";
 
-        let redirectLoginUrl = "http://localhost:5050/auth/login";
-
         this.loginLink = document.createElement("a");
-        this.loginLink.href = redirectLoginUrl ;
+        this.loginLink.href = "/auth/login";
         this.loginLink.textContent = "¿Ya tenes una cuenta? Inicia sesión";
 
         this.loginContainer.appendChild(this.loginLink);
@@ -135,17 +131,33 @@ export default class RegisterViewComponent extends HTMLElement {
     }
 
     connectedCallback() {
+        this.checkModelAndInit();
+    }
+
+    checkModelAndInit() {
+        if (this.modelInstance) {
+            this.initializeController();
+        } else {
+            setTimeout(() => this.checkModelAndInit(), 10);
+        }
+    }
+
+    initializeController() {
+        this.innerController = new RegisterController(this, this.modelInstance);
+
         this.boundSubmit = this.innerController.onRegisterFormSubmit.bind(this.innerController);
         this.form.addEventListener("submit", this.boundSubmit);
-
         this.innerController.init();
     }
 
     disconnectedCallback() {
-        this.form.removeEventListener("submit", this.boundSubmit);
-        this.boundSubmit = null;
-
-        this.innerController.release();
+        if (this.boundSubmit) {
+            this.form.removeEventListener("submit", this.boundSubmit);
+            this.boundSubmit = null;
+        }
+        if (this.innerController) {
+            this.innerController.release();
+        }
     }
 
     getUsernameValue() {
@@ -176,4 +188,3 @@ export default class RegisterViewComponent extends HTMLElement {
         this.inputPassword.value = "";
     }
 }
-

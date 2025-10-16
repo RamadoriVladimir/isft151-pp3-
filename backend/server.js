@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
 import moldRoutes from './routes/moldRoutes.js';
 import conn from './db/db.js';
+import { errorHandler } from './middleware/validationMiddleware.js';
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -25,6 +26,7 @@ class Server {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
         this.app.use(express.static(path.join(__dirname, "../frontend"))); 
+        this.app.use(express.static(path.join(__dirname, "../storage")));
         this.app.use(this.requireCacheNoStore);
     }
 
@@ -36,27 +38,48 @@ class Server {
     routes() {
         this.app.use("/auth", authRoutes);
         this.app.use("/mold", moldRoutes);
+
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+
+        this.app.get("/", (req, res) => {
+            res.sendFile(path.join(__dirname, "../frontend/index.html"));
+        });
+
+        this.app.get("/auth/login", (req, res) => {
+            res.sendFile(path.join(__dirname, "../frontend/index.html"));
+        });
+
+        this.app.get("/auth/register", (req, res) => {
+            res.sendFile(path.join(__dirname, "../frontend/index.html"));
+        });
+
+        this.app.get("/dashboard", (req, res) => {
+            res.sendFile(path.join(__dirname, "../frontend/index.html"));
+        });
+
+        this.app.use(errorHandler);
     }
 
     async start() {
         try {
-        await conn.connect();
-        this.app.listen(this.port, () => {
-            console.log(`Server running on http://localhost:${this.port}`);
-            console.log(`Server running on port ${this.port}`);
-        });
+            await conn.connect();
+            this.app.listen(this.port, () => {
+                console.log(`Server running on http://localhost:${this.port}`);
+                console.log(`Server running on port ${this.port}`);
+            });
         } catch (err) {
-        console.error("Error arrancando el servidor:", err);
-        process.exit(1);
+            console.error("Error arrancando el servidor:", err);
+            process.exit(1);
         }
     }
 
     async stop() {
         try {
-        await conn.disconnect();
-        console.log("Servidor detenido correctamente");
+            await conn.disconnect();
+            console.log("Servidor detenido correctamente");
         } catch (err) {
-        console.error("Error deteniendo el servidor:", err);
+            console.error("Error deteniendo el servidor:", err);
         }
     }
 }

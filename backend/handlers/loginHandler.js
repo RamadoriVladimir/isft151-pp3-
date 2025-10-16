@@ -1,40 +1,30 @@
 import jwt from "jsonwebtoken";
 
 export default class LoginHandler {
-    constructor(database, user) {
+    constructor(database, userModel) {
         this.db = database;
-        this.model = user;
+        this.userModel = userModel;
     }
 
-    async handleLogin(req, res) {
+    async handleLogin(req, res, next) {
         try {
-            this.model.validateAPIInput("login", req);
-
             const { email, password } = req.body;
-            const userData = {
-                email,
-                password
-            };
-            const user = await this.model.validateUserData(userData, this.db);
 
-            if (!user) {
-                const errorResponse = { message: "Credenciales invalidas" };
-                this.model.validateAPIOutput("login", 401, errorResponse);
-
-                return res.status(401).json(errorResponse);
-            }
+            const user = await this.userModel.validateUserData(
+                { email, password },
+                this.db
+            );
 
             const token = this.generateToken(user);
-            const successResponse = this.returnLoginJson(user, token);
-            this.model.validateAPIOutput("login", 200, successResponse);
 
-            return res.json(successResponse);
+            return res.json({
+                message: "Login exitoso",
+                token,
+                user: user.toJSON()
+            });
+
         } catch (err) {
-            console.error(err);
-            const errorResponse = { message: err.message || "Error en login" };
-            this.model.validateAPIOutput("login", 500, errorResponse);
-
-            return res.status(500).json(errorResponse);
+            next(err);
         }
     }
 
@@ -44,13 +34,5 @@ export default class LoginHandler {
             process.env.JWT_SECRET || "secret",
             { expiresIn: "1h" }
         );
-    }
-
-    returnLoginJson(user, token) {
-        return {
-            message: "Login exitoso",
-            token,
-            user: user.toJSON(),
-        };
     }
 }

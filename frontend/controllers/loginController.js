@@ -34,10 +34,11 @@ export default class LoginController {
             this.view.showMessage(`Bienvenido ${userData.name}`, "success");
             
             const token = this.model.getToken();
-            // localStorage.setItem('token', token);
+            
+            sessionStorage.setItem('token', token);
+            sessionStorage.setItem('userData', JSON.stringify(userData));
             
             setTimeout(() => {
-                // Redirigir o cambiar de vista
                 window.location.href = "/dashboard";
             }, 1000);
         } else {
