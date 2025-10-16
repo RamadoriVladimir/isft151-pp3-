@@ -1,14 +1,17 @@
 import LoginViewComponent from "./components/loginViewComponent.js";
 import RegisterViewComponent from "./components/registerViewComponent.js";
 import DashboardViewComponent from "./components/dashboardViewComponent.js";
+import CanvasViewComponent from "./components/canvasViewComponent.js";
 
 import LoginModel from "./models/loginModel.js";
 import { RegisterModel } from "./models/registerModel.js";
 import DashboardModel from "./models/dashboardModel.js";
+import CanvasModel from "./models/canvasModel.js";
 
 customElements.define("login-view", LoginViewComponent);
 customElements.define("register-view", RegisterViewComponent);
 customElements.define("dashboard-view", DashboardViewComponent);
+customElements.define("canvas-view", CanvasViewComponent);
 
 class FrontendRouter {
     constructor() {

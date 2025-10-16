@@ -6,27 +6,13 @@ import { validateMoldInput } from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 
-/**
- * Middleware para inyectar db en req
- * Así los handlers pueden acceder a la BD
- */
 router.use((req, res, next) => {
     req.db = conn;
     next();
 });
 
-/**
- * Middleware de autenticación
- * Todas las rutas de moldes requieren token
- */
 router.use(authMiddleware);
 
-// ============ HANDLERS INLINE ============
-
-/**
- * GET /mold/
- * Obtener todos los moldes
- */
 router.get("/", async (req, res, next) => {
     try {
         const molds = await Mold.findAll(req.db);
@@ -36,10 +22,6 @@ router.get("/", async (req, res, next) => {
     }
 });
 
-/**
- * GET /mold/:id
- * Obtener molde por ID
- */
 router.get("/:id", async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -57,11 +39,6 @@ router.get("/:id", async (req, res, next) => {
     }
 });
 
-/**
- * POST /mold/
- * Crear nuevo molde
- * req.body YA FUE VALIDADO por validateMoldInput
- */
 router.post("/", validateMoldInput, async (req, res, next) => {
     try {
         const mold = await Mold.create(req.db, req.body);
@@ -75,11 +52,6 @@ router.post("/", validateMoldInput, async (req, res, next) => {
     }
 });
 
-/**
- * PUT /mold/:id
- * Actualizar molde
- * req.body YA FUE VALIDADO por validateMoldInput
- */
 router.put("/:id", validateMoldInput, async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -94,10 +66,6 @@ router.put("/:id", validateMoldInput, async (req, res, next) => {
     }
 });
 
-/**
- * DELETE /mold/:id
- * Eliminar molde
- */
 router.delete("/:id", async (req, res, next) => {
     try {
         const { id } = req.params;

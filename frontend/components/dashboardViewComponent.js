@@ -1,4 +1,6 @@
 import DashboardController from "../controllers/dashboardController.js";
+import CanvasViewComponent from "./canvasViewComponent.js";
+import CanvasModel from "../models/canvasModel.js";
 
 export default class DashboardViewComponent extends HTMLElement {
     constructor() {
@@ -6,6 +8,7 @@ export default class DashboardViewComponent extends HTMLElement {
 
         this.modelInstance = null;
         this.innerController = null;
+        this.canvasModel = null;
 
         this.buildUI();
     }
@@ -56,14 +59,12 @@ export default class DashboardViewComponent extends HTMLElement {
         uploadForm.className = "upload-form";
         uploadForm.id = "uploadForm";
 
-        // Input: Nombre
         const moldNameInput = document.createElement("input");
         moldNameInput.type = "text";
         moldNameInput.placeholder = "Nombre del molde";
         moldNameInput.required = true;
         moldNameInput.id = "moldNameInput";
 
-        // Select: Tipo
         const moldTypeSelect = document.createElement("select");
         moldTypeSelect.required = true;
         moldTypeSelect.id = "moldTypeSelect";
@@ -91,40 +92,34 @@ export default class DashboardViewComponent extends HTMLElement {
         moldTypeSelect.appendChild(typeOption3);
         moldTypeSelect.appendChild(typeOption4);
 
-        // Input: Ancho
         const moldWidthInput = document.createElement("input");
         moldWidthInput.type = "number";
         moldWidthInput.placeholder = "Ancho (px)";
         moldWidthInput.min = "1";
         moldWidthInput.id = "moldWidthInput";
 
-        // Input: Alto
         const moldHeightInput = document.createElement("input");
         moldHeightInput.type = "number";
         moldHeightInput.placeholder = "Alto (px)";
         moldHeightInput.min = "1";
         moldHeightInput.id = "moldHeightInput";
 
-        // Input: Archivo SVG
         const svgFileInput = document.createElement("input");
         svgFileInput.type = "file";
         svgFileInput.accept = ".svg";
         svgFileInput.required = true;
         svgFileInput.id = "svgFileInput";
 
-        // Label: Archivo
         const svgFileLabel = document.createElement("label");
         svgFileLabel.className = "file-label";
         svgFileLabel.textContent = "Selecciona archivo SVG";
         svgFileLabel.id = "svgFileLabel";
         svgFileLabel.htmlFor = "svgFileInput";
 
-        // Preview SVG
         const svgPreview = document.createElement("div");
         svgPreview.className = "svg-preview";
         svgPreview.id = "svgPreview";
 
-        // Button: Upload
         const uploadBtn = document.createElement("button");
         uploadBtn.type = "submit";
         uploadBtn.className = "upload-btn";
@@ -162,9 +157,15 @@ export default class DashboardViewComponent extends HTMLElement {
         moldsSection.appendChild(moldsTitle);
         moldsSection.appendChild(moldsList);
 
+        // ===== CANVAS SECTION =====
+        const canvasSection = document.createElement("section");
+        canvasSection.className = "canvas-section";
+        canvasSection.id = "canvasSection";
+
         mainContent.appendChild(uploadSection);
         mainContent.appendChild(messageBox);
         mainContent.appendChild(moldsSection);
+        mainContent.appendChild(canvasSection);
 
         container.appendChild(header);
         container.appendChild(mainContent);
@@ -182,6 +183,8 @@ export default class DashboardViewComponent extends HTMLElement {
                 min-height: 100vh;
                 background: #f5f5f5;
                 font-family: Arial, sans-serif;
+                display: flex;
+                flex-direction: column;
             }
 
             .header {
@@ -224,8 +227,11 @@ export default class DashboardViewComponent extends HTMLElement {
 
             .main-content {
                 padding: 40px;
-                max-width: 1200px;
+                max-width: 1400px;
                 margin: 0 auto;
+                width: 100%;
+                flex: 1;
+                overflow-y: auto;
             }
 
             .upload-section {
@@ -365,6 +371,7 @@ export default class DashboardViewComponent extends HTMLElement {
                 padding: 30px;
                 border-radius: 10px;
                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                margin-bottom: 30px;
             }
 
             .molds-section h2 {
@@ -481,12 +488,20 @@ export default class DashboardViewComponent extends HTMLElement {
                 padding: 20px;
                 color: #666;
             }
+
+            .canvas-section {
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                margin-bottom: 30px;
+                height: 650px;
+                overflow: hidden;
+            }
         `;
 
         this.shadowRoot.appendChild(style);
         this.shadowRoot.appendChild(container);
 
-        // Guardar referencias a elementos importantes
         this.uploadForm = uploadForm;
         this.svgFileInput = svgFileInput;
         this.svgFileLabel = svgFileLabel;
@@ -500,6 +515,7 @@ export default class DashboardViewComponent extends HTMLElement {
         this.userNameSpan = userNameSpan;
         this.messageBox = messageBox;
         this.moldsList = moldsList;
+        this.canvasSection = canvasSection;
     }
 
     connectedCallback() {
@@ -526,6 +542,18 @@ export default class DashboardViewComponent extends HTMLElement {
         this.logoutBtn.addEventListener("click", this.boundLogout);
 
         this.innerController.init();
+        this.initializeCanvas();
+    }
+
+    initializeCanvas() {
+        if (!this.canvasSection) return;
+
+        this.canvasModel = new CanvasModel();
+        const canvasView = document.createElement("canvas-view");
+        canvasView.modelInstance = this.canvasModel;
+
+        this.canvasSection.innerHTML = "";
+        this.canvasSection.appendChild(canvasView);
     }
 
     disconnectedCallback() {
