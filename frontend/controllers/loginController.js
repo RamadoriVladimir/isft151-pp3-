@@ -33,9 +33,8 @@ export default class LoginController {
             const userData = this.model.getUserData();
             this.view.showMessage(`Bienvenido ${userData.name}`, "success");
             
-            // Guardar token si es necesario
             const token = this.model.getToken();
-            // localStorage.setItem('token', token); // Si lo necesitas
+            // localStorage.setItem('token', token);
             
             setTimeout(() => {
                 // Redirigir o cambiar de vista
