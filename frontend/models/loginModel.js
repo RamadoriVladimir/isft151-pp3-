@@ -3,6 +3,7 @@ export default class LoginModel {
         this.userData = null;
         this.token = null;
         this.errorMessage = null;
+        this.fieldErrors = {};
     }
 
     async authenticate(email, password) {
@@ -16,6 +17,7 @@ export default class LoginModel {
             if (!res.ok) {
                 const err = await res.json();
                 this.errorMessage = err.message || "Error en login";
+                this.fieldErrors = err.errors || {};
                 return false;
             }
 
@@ -23,9 +25,11 @@ export default class LoginModel {
             this.userData = data.user;
             this.token = data.token;
             this.errorMessage = null;
+            this.fieldErrors = {};
             return true;
         } catch (err) {
             this.errorMessage = "Error de conexión";
+            this.fieldErrors = {};
             return false;
         }
     }
@@ -42,9 +46,14 @@ export default class LoginModel {
         return this.errorMessage;
     }
 
+    getFieldErrors() {
+        return this.fieldErrors;
+    }
+
     clearData() {
         this.userData = null;
         this.token = null;
         this.errorMessage = null;
+        this.fieldErrors = {};
     }
 }

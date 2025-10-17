@@ -21,17 +21,29 @@ export default class LoginViewComponent extends HTMLElement {
 
         this.form = document.createElement("form");
 
+        this.emailWrapper = document.createElement("div");
+        this.emailWrapper.className = "input-wrapper";
         this.inputEmail = document.createElement("input");
         this.inputEmail.type = "email";
         this.inputEmail.name = "email";
         this.inputEmail.placeholder = "Email";
         this.inputEmail.required = true;
+        this.emailError = document.createElement("span");
+        this.emailError.className = "error-message";
+        this.emailWrapper.appendChild(this.inputEmail);
+        this.emailWrapper.appendChild(this.emailError);
 
+        this.passwordWrapper = document.createElement("div");
+        this.passwordWrapper.className = "input-wrapper";
         this.inputPassword = document.createElement("input");
         this.inputPassword.type = "password";
         this.inputPassword.name = "password";
         this.inputPassword.placeholder = "Contraseña";
         this.inputPassword.required = true;
+        this.passwordError = document.createElement("span");
+        this.passwordError.className = "error-message";
+        this.passwordWrapper.appendChild(this.inputPassword);
+        this.passwordWrapper.appendChild(this.passwordError);
 
         this.submitBtn = document.createElement("button");
         this.submitBtn.type = "submit";
@@ -50,14 +62,14 @@ export default class LoginViewComponent extends HTMLElement {
         this.registerContainer.appendChild(this.registerLink);
 
         this.appendChild(this.container);
-        this.form.appendChild(this.inputEmail);
-        this.form.appendChild(this.inputPassword);
+        this.form.appendChild(this.emailWrapper);
+        this.form.appendChild(this.passwordWrapper);
         this.form.appendChild(this.submitBtn);
 
         this.container.appendChild(this.loginTitle);
         this.container.appendChild(this.form);
-        this.container.appendChild(this.registerContainer);
         this.container.appendChild(this.messageBox);
+        this.container.appendChild(this.registerContainer);
 
         const style = document.createElement("style");
         style.textContent = `
@@ -79,12 +91,30 @@ export default class LoginViewComponent extends HTMLElement {
                 display: flex;
                 flex-direction: column;
             }
+            .input-wrapper {
+                display: flex;
+                flex-direction: column;
+                margin: 8px 0;
+            }
             .login-container input {
                 padding: 10px;
-                margin: 8px 0;
                 border: 1px solid #aaa;
                 border-radius: 5px;
                 font-size: 14px;
+            }
+            .login-container input:focus {
+                outline: none;
+                border-color: #007BFF;
+                box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+            }
+            .error-message {
+                color: #dc3545;
+                font-size: 12px;
+                margin-top: 3px;
+                display: none;
+            }
+            .error-message.show {
+                display: block;
             }
             .login-container button {
                 padding: 10px;
@@ -98,11 +128,24 @@ export default class LoginViewComponent extends HTMLElement {
             .login-container button:hover {
                 background: #0056b3;
             }
+            .login-container button:disabled {
+                background: #6c757d;
+                cursor: not-allowed;
+            }
             .message-box {
                 margin-top: 15px;
                 font-size: 14px;
                 text-align: center;
-                color: red;
+                display: none;
+            }
+            .message-box.show {
+                display: block;
+            }
+            .message-box.success {
+                color: #28a745;
+            }
+            .message-box.error {
+                color: #dc3545;
             }
             .register-container {
                 margin-top: 15px;
@@ -123,7 +166,6 @@ export default class LoginViewComponent extends HTMLElement {
     }
 
     connectedCallback() {
-        // Esperar a que el modelo esté disponible
         this.checkModelAndInit();
     }
 
@@ -131,7 +173,9 @@ export default class LoginViewComponent extends HTMLElement {
         if (this.modelInstance) {
             this.initializeController();
         } else {
-            setTimeout(() => this.checkModelAndInit(), 10);
+            setTimeout(function() {
+                this.checkModelAndInit();
+            }.bind(this), 10);
         }
     }
 
@@ -161,9 +205,47 @@ export default class LoginViewComponent extends HTMLElement {
         return this.inputPassword.value;
     }
 
-    showMessage(message, type = "info") {
+    clearFieldErrors() {
+        this.emailError.textContent = "";
+        this.emailError.classList.remove("show");
+        this.passwordError.textContent = "";
+        this.passwordError.classList.remove("show");
+    }
+
+    showFieldErrors(fieldErrors) {
+        this.clearFieldErrors();
+
+        if (fieldErrors.email) {
+            this.emailError.textContent = this.formatErrorMessage(fieldErrors.email);
+            this.emailError.classList.add("show");
+        }
+
+        if (fieldErrors.password) {
+            this.passwordError.textContent = this.formatErrorMessage(fieldErrors.password);
+            this.passwordError.classList.add("show");
+        }
+
+        if (fieldErrors.validation) {
+            this.passwordError.textContent = fieldErrors.validation;
+            this.passwordError.classList.add("show");
+        }
+    }
+
+    formatErrorMessage(error) {
+        if (Array.isArray(error)) {
+            return error.join(", ");
+        }
+        return error;
+    }
+
+    showMessage(message, type) {
         this.messageBox.textContent = message;
-        this.messageBox.className = `message-box ${type}`;
+        this.messageBox.className = "message-box " + type + " show";
+    }
+
+    clearMessage() {
+        this.messageBox.textContent = "";
+        this.messageBox.className = "message-box";
     }
 
     setLoading(isLoading) {
@@ -174,5 +256,6 @@ export default class LoginViewComponent extends HTMLElement {
     clearForm() {
         this.inputEmail.value = "";
         this.inputPassword.value = "";
+        this.clearFieldErrors();
     }
 }

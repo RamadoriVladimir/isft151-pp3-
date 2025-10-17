@@ -1,3 +1,4 @@
+
 export class RegisterHandler {
     constructor(database, userModel) {
         this.db = database;

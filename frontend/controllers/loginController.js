@@ -24,6 +24,8 @@ export default class LoginController {
         }
 
         this.view.setLoading(true);
+        this.view.clearMessage();
+        this.view.clearFieldErrors();
 
         const success = await this.model.authenticate(email, password);
 
@@ -31,19 +33,25 @@ export default class LoginController {
 
         if (success) {
             const userData = this.model.getUserData();
-            this.view.showMessage(`Bienvenido ${userData.name}`, "success");
+            this.view.showMessage("Bienvenido " + userData.name, "success");
             
             const token = this.model.getToken();
             
             sessionStorage.setItem('token', token);
             sessionStorage.setItem('userData', JSON.stringify(userData));
             
-            setTimeout(() => {
+            setTimeout(function() {
                 window.location.href = "/dashboard";
             }, 1000);
         } else {
             const error = this.model.getError();
-            this.view.showMessage(error, "error");
+            const fieldErrors = this.model.getFieldErrors();
+            
+            if (Object.keys(fieldErrors).length > 0) {
+                this.view.showFieldErrors(fieldErrors);
+            } else {
+                this.view.showMessage(error, "error");
+            }
         }
     }
 }
