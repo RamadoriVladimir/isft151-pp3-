@@ -28,6 +28,7 @@ export default class DashboardController {
         if (success) {
             const molds = this.model.getMolds();
             this.view.renderMoldsList(molds);
+            this.view.updateCanvasMolds();
         } else {
             const error = this.model.getError();
             this.view.showMessage(error || "Error al cargar moldes", "error");

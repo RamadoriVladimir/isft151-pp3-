@@ -17,6 +17,8 @@ export default class CanvasController {
         this.canvas = this.view.getCanvas();
         this.ctx = this.view.getCanvasContext();
 
+        this.model.setImageLoadCallback(this.handleImageLoaded.bind(this));
+
         this.setupCanvas();
         this.loadMolds();
         this.setupCanvasInteraction();
@@ -26,12 +28,19 @@ export default class CanvasController {
         console.log("CanvasController released");
     }
 
+    handleImageLoaded() {
+        console.log("Imagen cargada, redibujando canvas");
+        this.redraw();
+    }
+
     setupCanvas() {
         const container = this.canvas.parentElement;
         this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight - 30; // Restar altura del info
+        this.canvas.height = container.clientHeight - 30;
 
-        window.addEventListener("resize", () => this.handleWindowResize());
+        console.log("Canvas configurado:", this.canvas.width, "x", this.canvas.height);
+
+        window.addEventListener("resize", this.handleWindowResize.bind(this));
     }
 
     handleWindowResize() {
@@ -42,17 +51,28 @@ export default class CanvasController {
     }
 
     async loadMolds() {
-        const molds = await this.model.getMolds();
-        this.view.renderMoldsPalette(molds);
+        console.log("Cargando moldes en canvas...");
+        console.log("Moldes disponibles en modelo:", this.model.molds.length);
+        
+        // Si ya hay moldes en el modelo, usarlos directamente
+        if (this.model.molds.length > 0) {
+            this.view.renderMoldsPalette(this.model.molds);
+            console.log("Moldes renderizados en paleta:", this.model.molds.length);
+        } else {
+            // Si no hay moldes, intentar cargarlos desde el servidor
+            const molds = await this.model.getMolds();
+            this.view.renderMoldsPalette(molds);
+            console.log("Moldes cargados desde servidor:", molds.length);
+        }
     }
 
     setupCanvasInteraction() {
-        this.canvas.addEventListener("dragover", (e) => this.handleDragOver(e));
-        this.canvas.addEventListener("drop", (e) => this.handleDrop(e));
-        this.canvas.addEventListener("mousemove", (e) => this.handleMouseMove(e));
-        this.canvas.addEventListener("mousedown", (e) => this.handleMouseDown(e));
-        this.canvas.addEventListener("mouseup", (e) => this.handleMouseUp(e));
-        this.canvas.addEventListener("mouseleave", (e) => this.handleMouseLeave(e));
+        this.canvas.addEventListener("dragover", this.handleDragOver.bind(this));
+        this.canvas.addEventListener("drop", this.handleDrop.bind(this));
+        this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
+        this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
+        this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
+        this.canvas.addEventListener("mouseleave", this.handleMouseLeave.bind(this));
     }
 
     handleDragOver(e) {
@@ -69,6 +89,8 @@ export default class CanvasController {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        console.log("Drop en posición:", x, y, "Molde ID:", moldId);
 
         this.model.addObjectToCanvas(moldId, x, y);
         this.redraw();
@@ -95,6 +117,7 @@ export default class CanvasController {
         if (this.isDragging && this.selectedObject) {
             this.selectedObject.x = pos.x - this.dragOffset.x;
             this.selectedObject.y = pos.y - this.dragOffset.y;
+            this.view.showProperties(this.selectedObject);
             this.redraw();
             return;
         }
@@ -133,6 +156,7 @@ export default class CanvasController {
         const obj = this.getObjectAtPos(pos.x, pos.y);
 
         if (obj) {
+            console.log("Eliminando objeto:", obj.name);
             this.model.removeObjectFromCanvas(obj.id);
             this.selectedObject = null;
             this.view.clearProperties();
@@ -169,10 +193,12 @@ export default class CanvasController {
         this.ctx.save();
 
         const objects = this.model.getCanvasObjects();
+        console.log("Redibujando", objects.length, "objetos");
 
-        objects.forEach((obj, index) => {
+        for (let i = 0; i < objects.length; i++) {
+            const obj = objects[i];
             this.drawObject(obj, obj === this.selectedObject);
-        });
+        }
 
         this.ctx.restore();
     }
@@ -184,7 +210,7 @@ export default class CanvasController {
         this.ctx.rotate((obj.rotation * Math.PI) / 180);
         this.ctx.scale(obj.scale, obj.scale);
 
-        if (obj.svgData) {
+        if (obj.svgImage) {
             this.drawSVG(obj, -obj.width / 2, -obj.height / 2);
         } else {
             this.drawPlaceholder(obj, -obj.width / 2, -obj.height / 2);
@@ -200,7 +226,12 @@ export default class CanvasController {
     drawSVG(obj, x, y) {
         if (!obj.svgImage) return;
 
-        this.ctx.drawImage(obj.svgImage, x, y, obj.width, obj.height);
+        try {
+            this.ctx.drawImage(obj.svgImage, x, y, obj.width, obj.height);
+        } catch (err) {
+            console.error("Error dibujando SVG:", err);
+            this.drawPlaceholder(obj, x, y);
+        }
     }
 
     drawPlaceholder(obj, x, y) {

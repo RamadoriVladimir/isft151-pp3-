@@ -6,23 +6,26 @@ import { validateMoldInput } from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 
-router.use((req, res, next) => {
+// Middleware para agregar la conexión a la base de datos a todas las rutas
+function addDatabaseToRequest(req, res, next) {
     req.db = conn;
     next();
-});
+}
 
-router.use(authMiddleware);
-
-router.get("/", async (req, res, next) => {
+// Handler para obtener todos los moldes
+async function getAllMoldsHandler(req, res, next) {
     try {
         const molds = await Mold.findAll(req.db);
-        return res.json(molds.map(m => m.toJSON()));
+        return res.json(molds.map(function(m) {
+            return m.toJSON();
+        }));
     } catch (err) {
         next(err);
     }
-});
+}
 
-router.get("/:id", async (req, res, next) => {
+// Handler para obtener un molde por ID
+async function getMoldByIdHandler(req, res, next) {
     try {
         const { id } = req.params;
         const mold = await Mold.findById(req.db, id);
@@ -37,9 +40,10 @@ router.get("/:id", async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-});
+}
 
-router.post("/", validateMoldInput, async (req, res, next) => {
+// Handler para crear un nuevo molde
+async function createMoldHandler(req, res, next) {
     try {
         const mold = await Mold.create(req.db, req.body);
 
@@ -50,9 +54,10 @@ router.post("/", validateMoldInput, async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-});
+}
 
-router.put("/:id", validateMoldInput, async (req, res, next) => {
+// Handler para actualizar un molde
+async function updateMoldHandler(req, res, next) {
     try {
         const { id } = req.params;
         const mold = await Mold.update(req.db, id, req.body);
@@ -64,9 +69,10 @@ router.put("/:id", validateMoldInput, async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-});
+}
 
-router.delete("/:id", async (req, res, next) => {
+// Handler para eliminar un molde
+async function deleteMoldHandler(req, res, next) {
     try {
         const { id } = req.params;
         await Mold.delete(req.db, id);
@@ -77,6 +83,16 @@ router.delete("/:id", async (req, res, next) => {
     } catch (err) {
         next(err);
     }
-});
+}
+
+// Configuración de rutas
+router.use(addDatabaseToRequest);
+router.use(authMiddleware);
+
+router.get("/", getAllMoldsHandler);
+router.get("/:id", getMoldByIdHandler);
+router.post("/", validateMoldInput, createMoldHandler);
+router.put("/:id", validateMoldInput, updateMoldHandler);
+router.delete("/:id", deleteMoldHandler);
 
 export default router;

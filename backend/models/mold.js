@@ -39,7 +39,12 @@ export default class Mold {
 
             await fs.writeFile(filePath, svgContent, "utf-8");
 
-            return path.relative(path.join(__dirname, "../../"), filePath);
+            // IMPORTANTE: Normalizar la ruta para usar barras forward
+            const relativePath = path.relative(path.join(__dirname, "../../"), filePath);
+            const normalizedPath = relativePath.replace(/\\/g, '/');
+            
+            console.log("Ruta normalizada guardada:", normalizedPath);
+            return normalizedPath;
         } catch (err) {
             throw new Error(`Error guardando archivo SVG: ${err.message}`);
         }
@@ -49,7 +54,9 @@ export default class Mold {
         try {
             if (!svgPath) return;
 
-            const fullPath = path.join(__dirname, "../../", svgPath);
+            // Normalizar la ruta antes de eliminar
+            const normalizedPath = svgPath.replace(/\\/g, '/');
+            const fullPath = path.join(__dirname, "../../", normalizedPath);
             await fs.unlink(fullPath);
         } catch (err) {
             console.warn(`Advertencia al eliminar SVG: ${err.message}`);
@@ -139,13 +146,19 @@ export default class Mold {
     }
 
     static createInstanceFromRow(row) {
+        // Normalizar la ruta al crear la instancia
+        let svgPath = row.svg_path;
+        if (svgPath) {
+            svgPath = svgPath.replace(/\\/g, '/');
+        }
+
         return new Mold({
             id: row.id,
             name: row.name,
             type: row.type,
             width: row.width,
             height: row.height,
-            svg_path: row.svg_path,
+            svg_path: svgPath,
             creation_date: row.creation_date
         });
     }

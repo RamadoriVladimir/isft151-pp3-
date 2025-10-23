@@ -25,8 +25,14 @@ class Server {
 
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
-        this.app.use(express.static(path.join(__dirname, "../frontend"))); 
-        this.app.use(express.static(path.join(__dirname, "../storage")));
+        
+        this.app.use(express.static(path.join(__dirname, "../frontend")));
+        
+        // Esto permite acceder a: http://localhost:5050/storage/svgs/archivo.svg
+        const storagePath = path.join(__dirname, "../storage");
+        console.log("Sirviendo archivos estáticos desde:", storagePath);
+        this.app.use("/storage", express.static(storagePath));
+        
         this.app.use(this.requireCacheNoStore);
     }
 
@@ -58,7 +64,41 @@ class Server {
             res.sendFile(path.join(__dirname, "../frontend/index.html"));
         });
 
+        this.app.get("/test-storage", (req, res) => {
+            const fs = require('fs');
+            const storagePath = path.join(__dirname, "../storage");
+            
+            try {
+                const files = this.listFilesRecursive(storagePath);
+                res.json({
+                    message: "Archivos en storage:",
+                    storagePath: storagePath,
+                    files: files
+                });
+            } catch (err) {
+                res.status(500).json({
+                    error: err.message
+                });
+            }
+        });
+
         this.app.use(errorHandler);
+    }
+
+    listFilesRecursive(dir, fileList = []) {
+        const fs = require('fs');
+        const files = fs.readdirSync(dir);
+        
+        files.forEach(file => {
+            const filePath = path.join(dir, file);
+            if (fs.statSync(filePath).isDirectory()) {
+                this.listFilesRecursive(filePath, fileList);
+            } else {
+                fileList.push(filePath);
+            }
+        });
+        
+        return fileList;
     }
 
     async start() {

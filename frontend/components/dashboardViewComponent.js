@@ -549,11 +549,28 @@ export default class DashboardViewComponent extends HTMLElement {
         if (!this.canvasSection) return;
 
         this.canvasModel = new CanvasModel();
+        this.canvasModel.molds = this.modelInstance.getMolds();
+        
         const canvasView = document.createElement("canvas-view");
         canvasView.modelInstance = this.canvasModel;
 
         this.canvasSection.innerHTML = "";
         this.canvasSection.appendChild(canvasView);
+        
+        console.log("Canvas inicializado con", this.canvasModel.molds.length, "moldes");
+    }
+
+    updateCanvasMolds() {
+        if (this.canvasModel) {
+            this.canvasModel.molds = this.modelInstance.getMolds();
+            console.log("Moldes actualizados en canvas:", this.canvasModel.molds.length);
+            
+            // Buscar el componente canvas-view y actualizar su paleta
+            const canvasView = this.canvasSection.querySelector("canvas-view");
+            if (canvasView && canvasView.innerController) {
+                canvasView.innerController.loadMolds();
+            }
+        }
     }
 
     disconnectedCallback() {

@@ -4,6 +4,7 @@ export default class CanvasModel {
         this.molds = [];
         this.canvasObjects = [];
         this.errorMessage = null;
+        this.onImageLoadCallback = null;
 
         this.loadFromSession();
     }
@@ -17,6 +18,10 @@ export default class CanvasModel {
         } catch (err) {
             console.error("Error loading session:", err);
         }
+    }
+
+    setImageLoadCallback(callback) {
+        this.onImageLoadCallback = callback;
     }
 
     async getMolds() {
@@ -36,6 +41,7 @@ export default class CanvasModel {
 
             const data = await res.json();
             this.molds = Array.isArray(data) ? data : [];
+            console.log("Moldes cargados:", this.molds);
             return this.molds;
         } catch (err) {
             console.error("Error fetching molds:", err);
@@ -56,6 +62,8 @@ export default class CanvasModel {
             return;
         }
 
+        console.log("Agregando molde al canvas:", mold);
+
         const canvasObj = {
             id: `obj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             moldId: moldId,
@@ -74,19 +82,69 @@ export default class CanvasModel {
         this.canvasObjects.push(canvasObj);
 
         if (mold.svg_path) {
+            console.log("SVG path original:", mold.svg_path);
             this.loadSVGImage(canvasObj);
+        } else {
+            console.warn("El molde no tiene svg_path");
         }
     }
 
     loadSVGImage(obj) {
+        // Normalizar la ruta: reemplazar barras invertidas por barras normales
+        const normalizedPath = obj.svgPath.replace(/\\/g, '/');
+        console.log("Ruta normalizada:", normalizedPath);
+
         const img = new Image();
-        img.src = `/${obj.svgPath}`;
-        img.onload = () => {
-            obj.svgImage = img;
-        };
-        img.onerror = () => {
-            console.warn(`Error loading SVG: ${obj.svgPath}`);
-        };
+        img.crossOrigin = "anonymous";
+        
+        // Intentar con la ruta correcta
+        const imagePath = `http://localhost:5050/${normalizedPath}`;
+        console.log("Cargando imagen desde:", imagePath);
+        
+        img.src = imagePath;
+        img.onload = this.handleSVGImageLoad.bind(this, obj, img);
+        img.onerror = this.handleSVGImageError.bind(this, obj, img, normalizedPath);
+    }
+
+    handleSVGImageLoad(obj, img) {
+        obj.svgImage = img;
+        console.log("✓ SVG cargado correctamente:", obj.name, "Dimensiones:", img.width, "x", img.height);
+        
+        if (this.onImageLoadCallback) {
+            this.onImageLoadCallback();
+        }
+    }
+
+    handleSVGImageError(obj, img, normalizedPath) {
+        console.error("✗ Error cargando SVG:", normalizedPath);
+        
+        // Intentar cargar como blob inline
+        this.loadSVGAsInline(obj, normalizedPath);
+    }
+
+    async loadSVGAsInline(obj, normalizedPath) {
+        try {
+            console.log("Intentando cargar SVG como contenido inline");
+            const response = await fetch(`http://localhost:5050/${normalizedPath}`);
+            
+            if (!response.ok) {
+                console.error("No se pudo cargar el contenido SVG. Status:", response.status);
+                return;
+            }
+
+            const svgText = await response.text();
+            const blob = new Blob([svgText], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            
+            const img = new Image();
+            img.onload = this.handleSVGImageLoad.bind(this, obj, img);
+            img.onerror = function() {
+                console.error("Error cargando SVG inline");
+            };
+            img.src = url;
+        } catch (err) {
+            console.error("Error en loadSVGAsInline:", err);
+        }
     }
 
     removeObjectFromCanvas(objId) {
