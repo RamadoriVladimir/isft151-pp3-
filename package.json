@@ -1,0 +1,27 @@
+{
+  "name": "app-tizadas",
+  "version": "1.0.0",
+  "description": "Aplicación de gestión de moldes con trabajo colaborativo",
+  "main": "backend/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node backend/main.js",
+    "dev": "nodemon backend/main.js"
+  },
+  "keywords": ["moldes", "canvas", "colaborativo", "websocket"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

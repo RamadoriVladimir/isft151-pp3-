@@ -10,6 +10,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import CollaborativeWebSocketServer from './websocket/websocketServer.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config();
 
 class Server {
@@ -128,10 +131,9 @@ class Server {
             
             this.wsServer = new CollaborativeWebSocketServer(this.httpServer);
             
-            this.httpServer.listen(this.port, function() {
-                console.log(`Server running on http://localhost:${this.port}`);
-                console.log(`WebSocket server available at ws://localhost:${this.port}/ws`);
-            }.bind(this));
+            this.httpServer.listen(this.port, '0.0.0.0', function() {
+                console.log(`Server running on port ${this.port}`);
+        }.bind(this));
         } catch (err) {
             console.error("Error arrancando el servidor:", err);
             process.exit(1);
