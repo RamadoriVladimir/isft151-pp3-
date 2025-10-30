@@ -1,11 +1,16 @@
+import WebSocketService from "../services/websocketService.js";
+
 export default class DashboardModel {
     constructor() {
         this.userData = null;
         this.molds = [];
         this.errorMessage = null;
         this.token = null;
+        this.wsService = new WebSocketService();
+        this.onMoldsUpdateCallback = null;
 
         this.loadFromSession();
+        this.setupWebSocket();
     }
 
     loadFromSession() {
@@ -25,6 +30,88 @@ export default class DashboardModel {
         }
     }
 
+    setupWebSocket() {
+        if (!this.token) return;
+
+        this.wsService.connect(this.token);
+
+        this.wsService.on("connected", this.handleWSConnected.bind(this));
+        this.wsService.on("disconnected", this.handleWSDisconnected.bind(this));
+        this.wsService.on("mold_created", this.handleMoldCreated.bind(this));
+        this.wsService.on("mold_updated", this.handleMoldUpdated.bind(this));
+        this.wsService.on("mold_deleted", this.handleMoldDeleted.bind(this));
+        this.wsService.on("user_joined", this.handleUserJoined.bind(this));
+        this.wsService.on("user_left", this.handleUserLeft.bind(this));
+    }
+
+    setOnMoldsUpdateCallback(callback) {
+        this.onMoldsUpdateCallback = callback;
+    }
+
+    handleWSConnected(data) {
+        console.log("✓ Conectado al sistema colaborativo");
+    }
+
+    handleWSDisconnected(data) {
+        console.log("✗ Desconectado del sistema colaborativo");
+    }
+
+    handleMoldCreated(data) {
+        console.log("Otro usuario creó un molde:", data.mold.name, "por", data.email);
+        
+        const exists = this.molds.find(function(m) {
+            return m.id === data.mold.id;
+        });
+
+        if (!exists) {
+            this.molds.push(data.mold);
+            
+            if (this.onMoldsUpdateCallback) {
+                this.onMoldsUpdateCallback("created", data.mold, data.email);
+            }
+        }
+    }
+
+    handleMoldUpdated(data) {
+        console.log("Otro usuario actualizó un molde:", data.mold.name, "por", data.email);
+        
+        const index = this.molds.findIndex(function(m) {
+            return m.id === data.mold.id;
+        });
+
+        if (index > -1) {
+            this.molds[index] = data.mold;
+            
+            if (this.onMoldsUpdateCallback) {
+                this.onMoldsUpdateCallback("updated", data.mold, data.email);
+            }
+        }
+    }
+
+    handleMoldDeleted(data) {
+        console.log("Otro usuario eliminó un molde:", data.moldId, "por", data.email);
+        
+        const index = this.molds.findIndex(function(m) {
+            return m.id === data.moldId;
+        });
+
+        if (index > -1) {
+            this.molds.splice(index, 1);
+            
+            if (this.onMoldsUpdateCallback) {
+                this.onMoldsUpdateCallback("deleted", { id: data.moldId }, data.email);
+            }
+        }
+    }
+
+    handleUserJoined(data) {
+        console.log(`👤 ${data.email} se unió a la sesión colaborativa`);
+    }
+
+    handleUserLeft(data) {
+        console.log(`👤 ${data.email} dejó la sesión colaborativa`);
+    }
+
     redirectToLogin() {
         window.location.href = "/auth/login";
     }
@@ -39,6 +126,10 @@ export default class DashboardModel {
 
     getError() {
         return this.errorMessage;
+    }
+
+    getWebSocketService() {
+        return this.wsService;
     }
 
     async fetchMolds() {
@@ -111,6 +202,12 @@ export default class DashboardModel {
             }
 
             const data = await res.json();
+            
+            if (data.mold) {
+                this.molds.push(data.mold);
+                this.wsService.notifyMoldCreated(data.mold);
+            }
+
             this.errorMessage = null;
             return true;
         } catch (err) {
@@ -140,6 +237,16 @@ export default class DashboardModel {
                 return false;
             }
 
+            const index = this.molds.findIndex(function(m) {
+                return m.id === moldId;
+            });
+
+            if (index > -1) {
+                this.molds.splice(index, 1);
+            }
+
+            this.wsService.notifyMoldDeleted(moldId);
+
             this.errorMessage = null;
             return true;
         } catch (err) {
@@ -150,6 +257,8 @@ export default class DashboardModel {
     }
 
     logout() {
+        this.wsService.disconnect();
+        
         sessionStorage.removeItem("userData");
         sessionStorage.removeItem("token");
         this.userData = null;
@@ -159,5 +268,11 @@ export default class DashboardModel {
 
     clearError() {
         this.errorMessage = null;
+    }
+
+    destroy() {
+        if (this.wsService) {
+            this.wsService.disconnect();
+        }
     }
 }

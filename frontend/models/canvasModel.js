@@ -1,3 +1,5 @@
+import WebSocketService from "../services/websocketService.js";
+
 export default class CanvasModel {
     constructor() {
         this.token = null;
@@ -5,8 +7,11 @@ export default class CanvasModel {
         this.canvasObjects = [];
         this.errorMessage = null;
         this.onImageLoadCallback = null;
+        this.wsService = new WebSocketService();
+        this.onCanvasUpdateCallback = null;
 
         this.loadFromSession();
+        this.setupWebSocket();
     }
 
     loadFromSession() {
@@ -18,6 +23,110 @@ export default class CanvasModel {
         } catch (err) {
             console.error("Error loading session:", err);
         }
+    }
+
+    setupWebSocket() {
+        if (!this.token) return;
+
+        this.wsService.connect(this.token);
+
+        this.wsService.on("connected", this.handleWSConnected.bind(this));
+        this.wsService.on("canvas_object_added", this.handleCanvasObjectAdded.bind(this));
+        this.wsService.on("canvas_object_moved", this.handleCanvasObjectMoved.bind(this));
+        this.wsService.on("canvas_object_removed", this.handleCanvasObjectRemoved.bind(this));
+        this.wsService.on("canvas_cleared", this.handleCanvasCleared.bind(this));
+    }
+
+    setOnCanvasUpdateCallback(callback) {
+        this.onCanvasUpdateCallback = callback;
+    }
+
+    handleWSConnected(data) {
+        console.log("✓ Canvas conectado al sistema colaborativo");
+    }
+
+    handleCanvasObjectAdded(data) {
+        if (data.userId === this.getUserId()) return;
+
+        console.log("Otro usuario agregó un objeto al canvas:", data.object.name);
+
+        const exists = this.canvasObjects.find(function(obj) {
+            return obj.id === data.object.id;
+        });
+
+        if (!exists) {
+            this.canvasObjects.push(data.object);
+            
+            if (data.object.svgPath) {
+                this.loadSVGImage(data.object);
+            }
+
+            if (this.onCanvasUpdateCallback) {
+                this.onCanvasUpdateCallback("object_added", data.object);
+            }
+        }
+    }
+
+    handleCanvasObjectMoved(data) {
+        if (data.userId === this.getUserId()) return;
+
+        const obj = this.canvasObjects.find(function(o) {
+            return o.id === data.objectId;
+        });
+
+        if (obj) {
+            obj.x = data.x;
+            obj.y = data.y;
+            obj.rotation = data.rotation;
+            obj.scale = data.scale;
+
+            if (this.onCanvasUpdateCallback) {
+                this.onCanvasUpdateCallback("object_moved", obj);
+            }
+        }
+    }
+
+    handleCanvasObjectRemoved(data) {
+        if (data.userId === this.getUserId()) return;
+
+        console.log("Otro usuario eliminó un objeto del canvas");
+
+        const index = this.canvasObjects.findIndex(function(obj) {
+            return obj.id === data.objectId;
+        });
+
+        if (index > -1) {
+            this.canvasObjects.splice(index, 1);
+
+            if (this.onCanvasUpdateCallback) {
+                this.onCanvasUpdateCallback("object_removed", { id: data.objectId });
+            }
+        }
+    }
+
+    handleCanvasCleared(data) {
+        if (data.userId === this.getUserId()) return;
+
+        console.log(`Otro usuario (${data.email}) limpió el canvas`);
+
+        this.canvasObjects = [];
+
+        if (this.onCanvasUpdateCallback) {
+            this.onCanvasUpdateCallback("canvas_cleared", {});
+        }
+    }
+
+    getUserId() {
+        try {
+            const userDataStr = sessionStorage.getItem("userData");
+            if (userDataStr) {
+                const userData = JSON.parse(userDataStr);
+                return userData.id;
+            }
+        } catch (err) {
+            console.error("Error getting user ID:", err);
+        }
+        return null;
     }
 
     setImageLoadCallback(callback) {
@@ -55,7 +164,9 @@ export default class CanvasModel {
     }
 
     addObjectToCanvas(moldId, x, y) {
-        const mold = this.molds.find((m) => m.id == moldId);
+        const mold = this.molds.find(function(m) {
+            return m.id == moldId;
+        });
 
         if (!mold) {
             console.error("Molde no encontrado");
@@ -87,17 +198,17 @@ export default class CanvasModel {
         } else {
             console.warn("El molde no tiene svg_path");
         }
+
+        this.wsService.notifyCanvasObjectAdded(canvasObj);
     }
 
     loadSVGImage(obj) {
-        // Normalizar la ruta: reemplazar barras invertidas por barras normales
         const normalizedPath = obj.svgPath.replace(/\\/g, '/');
         console.log("Ruta normalizada:", normalizedPath);
 
         const img = new Image();
         img.crossOrigin = "anonymous";
         
-        // Intentar con la ruta correcta
         const imagePath = `http://localhost:5050/${normalizedPath}`;
         console.log("Cargando imagen desde:", imagePath);
         
@@ -117,8 +228,6 @@ export default class CanvasModel {
 
     handleSVGImageError(obj, img, normalizedPath) {
         console.error("✗ Error cargando SVG:", normalizedPath);
-        
-        // Intentar cargar como blob inline
         this.loadSVGAsInline(obj, normalizedPath);
     }
 
@@ -148,20 +257,44 @@ export default class CanvasModel {
     }
 
     removeObjectFromCanvas(objId) {
-        const index = this.canvasObjects.findIndex((o) => o.id === objId);
+        const index = this.canvasObjects.findIndex(function(o) {
+            return o.id === objId;
+        });
+
         if (index > -1) {
             this.canvasObjects.splice(index, 1);
+            this.wsService.notifyCanvasObjectRemoved(objId);
         }
     }
 
     clearCanvas() {
         this.canvasObjects = [];
+        this.wsService.notifyCanvasCleared();
     }
 
     updateObjectProperty(objId, property, value) {
-        const obj = this.canvasObjects.find((o) => o.id === objId);
+        const obj = this.canvasObjects.find(function(o) {
+            return o.id === objId;
+        });
+
         if (obj) {
             obj[property] = value;
+        }
+    }
+
+    notifyObjectMoved(objId) {
+        const obj = this.canvasObjects.find(function(o) {
+            return o.id === objId;
+        });
+
+        if (obj) {
+            this.wsService.notifyCanvasObjectMoved(
+                obj.id,
+                obj.x,
+                obj.y,
+                obj.rotation,
+                obj.scale
+            );
         }
     }
 
@@ -171,5 +304,11 @@ export default class CanvasModel {
 
     clearError() {
         this.errorMessage = null;
+    }
+
+    destroy() {
+        if (this.wsService) {
+            this.wsService.disconnect();
+        }
     }
 }

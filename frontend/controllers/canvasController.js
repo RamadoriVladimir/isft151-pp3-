@@ -9,6 +9,8 @@ export default class CanvasController {
         this.selectedObject = null;
         this.isDragging = false;
         this.dragOffset = { x: 0, y: 0 };
+        this.lastMoveNotification = 0;
+        this.moveNotificationDelay = 100;
     }
 
     init() {
@@ -18,6 +20,7 @@ export default class CanvasController {
         this.ctx = this.view.getCanvasContext();
 
         this.model.setImageLoadCallback(this.handleImageLoaded.bind(this));
+        this.model.setOnCanvasUpdateCallback(this.handleCollaborativeUpdate.bind(this));
 
         this.setupCanvas();
         this.loadMolds();
@@ -26,11 +29,27 @@ export default class CanvasController {
 
     release() {
         console.log("CanvasController released");
+        if (this.model) {
+            this.model.destroy();
+        }
     }
 
     handleImageLoaded() {
         console.log("Imagen cargada, redibujando canvas");
         this.redraw();
+    }
+
+    handleCollaborativeUpdate(action, data) {
+        console.log("Actualización colaborativa:", action);
+
+        switch (action) {
+            case "object_added":
+            case "object_moved":
+            case "object_removed":
+            case "canvas_cleared":
+                this.redraw();
+                break;
+        }
     }
 
     setupCanvas() {
@@ -54,12 +73,10 @@ export default class CanvasController {
         console.log("Cargando moldes en canvas...");
         console.log("Moldes disponibles en modelo:", this.model.molds.length);
         
-        // Si ya hay moldes en el modelo, usarlos directamente
         if (this.model.molds.length > 0) {
             this.view.renderMoldsPalette(this.model.molds);
             console.log("Moldes renderizados en paleta:", this.model.molds.length);
         } else {
-            // Si no hay moldes, intentar cargarlos desde el servidor
             const molds = await this.model.getMolds();
             this.view.renderMoldsPalette(molds);
             console.log("Moldes cargados desde servidor:", molds.length);
@@ -119,6 +136,13 @@ export default class CanvasController {
             this.selectedObject.y = pos.y - this.dragOffset.y;
             this.view.showProperties(this.selectedObject);
             this.redraw();
+
+            const now = Date.now();
+            if (now - this.lastMoveNotification > this.moveNotificationDelay) {
+                this.model.notifyObjectMoved(this.selectedObject.id);
+                this.lastMoveNotification = now;
+            }
+
             return;
         }
 
@@ -127,10 +151,16 @@ export default class CanvasController {
     }
 
     handleMouseUp(e) {
+        if (this.isDragging && this.selectedObject) {
+            this.model.notifyObjectMoved(this.selectedObject.id);
+        }
         this.isDragging = false;
     }
 
     handleMouseLeave(e) {
+        if (this.isDragging && this.selectedObject) {
+            this.model.notifyObjectMoved(this.selectedObject.id);
+        }
         this.isDragging = false;
     }
 
@@ -276,7 +306,7 @@ export default class CanvasController {
     }
 
     onClearCanvas(e) {
-        if (confirm("¿Estás seguro de que deseas limpiar todo el lienzo?")) {
+        if (confirm("¿Estás seguro de que deseas limpiar todo el lienzo? Esta acción afectará a todos los usuarios.")) {
             this.model.clearCanvas();
             this.selectedObject = null;
             this.view.clearProperties();

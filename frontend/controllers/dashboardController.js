@@ -8,10 +8,54 @@ export default class DashboardController {
         console.log("DashboardController initialized");
         this.loadUserData();
         this.loadMolds();
+        this.setupCollaborativeCallbacks();
     }
 
     release() {
         console.log("DashboardController released");
+        if (this.model) {
+            this.model.destroy();
+        }
+    }
+
+    setupCollaborativeCallbacks() {
+        this.model.setOnMoldsUpdateCallback(this.handleCollaborativeUpdate.bind(this));
+    }
+
+    handleCollaborativeUpdate(action, mold, userEmail) {
+        switch (action) {
+            case "created":
+                this.view.showMessage(
+                    `${userEmail} agregó un nuevo molde: ${mold.name}`,
+                    "info"
+                );
+                this.refreshMoldsList();
+                this.view.updateCanvasMolds();
+                break;
+                
+            case "updated":
+                this.view.showMessage(
+                    `${userEmail} actualizó el molde: ${mold.name}`,
+                    "info"
+                );
+                this.refreshMoldsList();
+                this.view.updateCanvasMolds();
+                break;
+                
+            case "deleted":
+                this.view.showMessage(
+                    `${userEmail} eliminó un molde`,
+                    "info"
+                );
+                this.refreshMoldsList();
+                this.view.updateCanvasMolds();
+                break;
+        }
+    }
+
+    refreshMoldsList() {
+        const molds = this.model.getMolds();
+        this.view.renderMoldsList(molds);
     }
 
     loadUserData() {
@@ -58,7 +102,8 @@ export default class DashboardController {
         if (success) {
             this.view.showMessage("Molde creado exitosamente", "success");
             this.view.clearForm();
-            await this.loadMolds();
+            this.refreshMoldsList();
+            this.view.updateCanvasMolds();
         } else {
             const error = this.model.getError();
             this.view.showMessage(error || "Error al crear molde", "error");
@@ -75,7 +120,8 @@ export default class DashboardController {
 
         if (success) {
             this.view.showMessage("Molde eliminado exitosamente", "success");
-            await this.loadMolds();
+            this.refreshMoldsList();
+            this.view.updateCanvasMolds();
         } else {
             const error = this.model.getError();
             this.view.showMessage(error || "Error al eliminar molde", "error");

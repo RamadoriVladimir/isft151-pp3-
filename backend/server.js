@@ -1,12 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import http from 'http';
 import authRoutes from './routes/authRoutes.js';
 import moldRoutes from './routes/moldRoutes.js';
 import conn from './db/db.js';
 import { errorHandler } from './middleware/validationMiddleware.js';
 import path from "path";
 import { fileURLToPath } from "url";
+import CollaborativeWebSocketServer from './websocket/websocketServer.js';
 
 dotenv.config();
 
@@ -14,6 +16,8 @@ class Server {
     constructor() {
         this.app = express();
         this.port = process.env.PORT || 5050;
+        this.httpServer = null;
+        this.wsServer = null;
 
         this.middlewares();
         this.routes();
@@ -28,7 +32,6 @@ class Server {
         
         this.app.use(express.static(path.join(__dirname, "../frontend")));
         
-        // Esto permite acceder a: http://localhost:5050/storage/svgs/archivo.svg
         const storagePath = path.join(__dirname, "../storage");
         console.log("Sirviendo archivos estáticos desde:", storagePath);
         this.app.use("/storage", express.static(storagePath));
@@ -48,23 +51,39 @@ class Server {
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
 
-        this.app.get("/", (req, res) => {
+        this.app.get("/", function(req, res) {
             res.sendFile(path.join(__dirname, "../frontend/index.html"));
         });
 
-        this.app.get("/auth/login", (req, res) => {
+        this.app.get("/auth/login", function(req, res) {
             res.sendFile(path.join(__dirname, "../frontend/index.html"));
         });
 
-        this.app.get("/auth/register", (req, res) => {
+        this.app.get("/auth/register", function(req, res) {
             res.sendFile(path.join(__dirname, "../frontend/index.html"));
         });
 
-        this.app.get("/dashboard", (req, res) => {
+        this.app.get("/dashboard", function(req, res) {
             res.sendFile(path.join(__dirname, "../frontend/index.html"));
         });
 
-        this.app.get("/test-storage", (req, res) => {
+        this.app.get("/ws-status", function(req, res) {
+            if (this.wsServer) {
+                const clients = this.wsServer.getConnectedClients();
+                res.json({
+                    status: "active",
+                    connectedClients: clients.length,
+                    clients: clients
+                });
+            } else {
+                res.json({
+                    status: "inactive",
+                    connectedClients: 0
+                });
+            }
+        }.bind(this));
+
+        this.app.get("/test-storage", function(req, res) {
             const fs = require('fs');
             const storagePath = path.join(__dirname, "../storage");
             
@@ -80,7 +99,7 @@ class Server {
                     error: err.message
                 });
             }
-        });
+        }.bind(this));
 
         this.app.use(errorHandler);
     }
@@ -89,14 +108,14 @@ class Server {
         const fs = require('fs');
         const files = fs.readdirSync(dir);
         
-        files.forEach(file => {
+        files.forEach(function(file) {
             const filePath = path.join(dir, file);
             if (fs.statSync(filePath).isDirectory()) {
                 this.listFilesRecursive(filePath, fileList);
             } else {
                 fileList.push(filePath);
             }
-        });
+        }.bind(this));
         
         return fileList;
     }
@@ -104,10 +123,15 @@ class Server {
     async start() {
         try {
             await conn.connect();
-            this.app.listen(this.port, () => {
+            
+            this.httpServer = http.createServer(this.app);
+            
+            this.wsServer = new CollaborativeWebSocketServer(this.httpServer);
+            
+            this.httpServer.listen(this.port, function() {
                 console.log(`Server running on http://localhost:${this.port}`);
-                console.log(`Server running on port ${this.port}`);
-            });
+                console.log(`WebSocket server available at ws://localhost:${this.port}/ws`);
+            }.bind(this));
         } catch (err) {
             console.error("Error arrancando el servidor:", err);
             process.exit(1);
@@ -116,6 +140,14 @@ class Server {
 
     async stop() {
         try {
+            if (this.wsServer) {
+                this.wsServer.shutdown();
+            }
+            
+            if (this.httpServer) {
+                this.httpServer.close();
+            }
+            
             await conn.disconnect();
             console.log("Servidor detenido correctamente");
         } catch (err) {
