@@ -21,9 +21,11 @@ function addDatabaseToRequest(req, res, next) {
 async function getAllMoldsHandler(req, res, next) {
     try {
         const molds = await Mold.findAll(req.db);
-        return res.json(molds.map(function(m) {
-            return m.toJSON();
-        }));
+        return res.json({
+            molds: molds.map(function(m) {
+                return m.toJSON();
+            })
+        });
     } catch (err) {
         next(err);
     }

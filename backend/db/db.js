@@ -124,7 +124,6 @@ class SQLiteConnection {
         if (!this.db) {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
-
         const hashedPassword = await bcrypt.hash(userData.password, 10);
 
         await this.db.run(

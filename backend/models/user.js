@@ -20,14 +20,12 @@ export default class User {
             creation_date: this.creation_date
         };
     }
-    
+
     static async create(db, userData) {
-        const hashedPassword = await bcrypt.hash(userData.password, 10);
-        
         await db.insertUserToDB({
             name: userData.name,
             email: userData.email,
-            password: hashedPassword,
+            password: userData.password, 
             role: userData.role || "user"
         });
         

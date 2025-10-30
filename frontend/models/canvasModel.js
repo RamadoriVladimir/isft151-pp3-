@@ -149,7 +149,7 @@ export default class CanvasModel {
             }
 
             const data = await res.json();
-            this.molds = Array.isArray(data) ? data : [];
+            this.molds = Array.isArray(data) ? data : (data.molds || []);
             console.log("Moldes cargados:", this.molds);
             return this.molds;
         } catch (err) {

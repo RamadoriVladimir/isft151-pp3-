@@ -75,10 +75,12 @@ export function getAPISpecifications() {
                 success: {
                     status: 200,
                     schema: {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: ["id", "name", "type", "width", "height", "svg_path", "creation_date"]
+                        molds: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: ["id", "name", "type", "width", "height", "svg_path", "creation_date"]
+                            }
                         }
                     }
                 },

@@ -153,7 +153,7 @@ export default class DashboardModel {
             }
 
             const data = await res.json();
-            this.molds = Array.isArray(data) ? data : [];
+            this.molds = Array.isArray(data) ? data : (data.molds || []);
             this.errorMessage = null;
             return true;
         } catch (err) {

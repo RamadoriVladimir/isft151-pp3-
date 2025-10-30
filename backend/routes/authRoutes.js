@@ -10,7 +10,7 @@ import {
 
 const router = express.Router();
 
-// para la conexión a la base de datos
+// conexión a la base de datos
 router.use(function(req, res, next) {
     req.db = conn;
     next();
@@ -51,7 +51,10 @@ async function handleLogin(req, res, next) {
     try {
         const { email, password } = req.body;
 
-        const user = await User.validateUserData({ email, password }, req.db);
+        const user = await User.validateUserData(
+            { email, password },
+            req.db
+        );
 
         const token = jwt.sign(
             { id: user.id, email: user.email },
