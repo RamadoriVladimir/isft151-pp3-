@@ -125,24 +125,16 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        if (!userData.password) {
-            throw new Error("Password es requerido");
-        }
-
         const hashedPassword = await bcrypt.hash(userData.password, 10);
-        const user = { ...userData, password: hashedPassword };
-
-        if (!user.name || !user.email) {
-            throw new Error("Name y email son requeridos");
-        }
 
         await this.db.run(
             `INSERT INTO users (name, email, pass_hash, role) VALUES (?, ?, ?, ?)`,
-            [user.name, user.email, user.password, user.role || "user"]
+            [userData.name, userData.email, hashedPassword, userData.role || "user"]
         );
 
-        console.log(`Usuario ${user.name} insertado correctamente`);
+        console.log(`Usuario ${userData.name} insertado correctamente`);
     }
+
 
     async getUserByEmail(email) {
         if (!this.db) {
@@ -180,6 +172,7 @@ class SQLiteConnection {
         return result.lastID;
     }
 
+
     // ==================== DRAFTS ====================
     async createDraft(description, userId, collectionsId) {
         if (!this.db) {
@@ -189,6 +182,20 @@ class SQLiteConnection {
         const result = await this.db.run(
             `INSERT INTO drafts (description, users_id, collections_id) VALUES (?, ?, ?)`,
             [description, userId, collectionsId]
+        );
+
+        return result.lastID;
+    }
+
+    async addMoldToDraft(draftId, moldId, positionX, positionY, rotation, scaling) {
+        if (!this.db) {
+            throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
+        }
+
+        const result = await this.db.run(
+            `INSERT INTO molds_drafts (position_x, position_y, rotation, scaling, drafts_id, molds_id) 
+            VALUES (?, ?, ?, ?, ?, ?)`,
+            [positionX, positionY, rotation, scaling, draftId, moldId]
         );
 
         return result.lastID;
@@ -208,22 +215,8 @@ class SQLiteConnection {
         );
     }
 
-    async addMoldToDraft(draftId, moldId, positionX, positionY, rotation, scaling) {
-        if (!this.db) {
-            throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
-        }
-
-        const result = await this.db.run(
-            `INSERT INTO molds_drafts (position_x, position_y, rotation, scaling, drafts_id, molds_id) 
-            VALUES (?, ?, ?, ?, ?, ?)`,
-            [positionX, positionY, rotation, scaling, draftId, moldId]
-        );
-
-        return result.lastID;
-    }
-
     // ==================== MOLDS ====================
-    async createMold(name, type, width, height, svgPath) {
+     async createMold(name, type, width, height, svgPath) {
         if (!this.db) {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }

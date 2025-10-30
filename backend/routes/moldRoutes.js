@@ -2,17 +2,22 @@ import express from "express";
 import Mold from "../models/mold.js";
 import conn from "../db/db.js";
 import authMiddleware from "../middleware/authMiddleware.js";
-import { validateMoldInput } from "../middleware/validationMiddleware.js";
+import { 
+    validateGetAllMoldsInput,
+    validateGetMoldByIdInput,
+    validateCreateMoldInput,
+    validateUpdateMoldInput,
+    validateDeleteMoldInput,
+    validateOutput
+} from "../middleware/validationMiddleware.js";
 
 const router = express.Router();
 
-// Middleware para agregar la conexión a la base de datos a todas las rutas
 function addDatabaseToRequest(req, res, next) {
     req.db = conn;
     next();
 }
 
-// Handler para obtener todos los moldes
 async function getAllMoldsHandler(req, res, next) {
     try {
         const molds = await Mold.findAll(req.db);
@@ -24,7 +29,6 @@ async function getAllMoldsHandler(req, res, next) {
     }
 }
 
-// Handler para obtener un molde por ID
 async function getMoldByIdHandler(req, res, next) {
     try {
         const { id } = req.params;
@@ -42,7 +46,6 @@ async function getMoldByIdHandler(req, res, next) {
     }
 }
 
-// Handler para crear un nuevo molde
 async function createMoldHandler(req, res, next) {
     try {
         const mold = await Mold.create(req.db, req.body);
@@ -56,7 +59,6 @@ async function createMoldHandler(req, res, next) {
     }
 }
 
-// Handler para actualizar un molde
 async function updateMoldHandler(req, res, next) {
     try {
         const { id } = req.params;
@@ -71,7 +73,6 @@ async function updateMoldHandler(req, res, next) {
     }
 }
 
-// Handler para eliminar un molde
 async function deleteMoldHandler(req, res, next) {
     try {
         const { id } = req.params;
@@ -85,14 +86,13 @@ async function deleteMoldHandler(req, res, next) {
     }
 }
 
-// Configuración de rutas
 router.use(addDatabaseToRequest);
 router.use(authMiddleware);
 
-router.get("/", getAllMoldsHandler);
-router.get("/:id", getMoldByIdHandler);
-router.post("/", validateMoldInput, createMoldHandler);
-router.put("/:id", validateMoldInput, updateMoldHandler);
-router.delete("/:id", deleteMoldHandler);
+router.get("/", validateGetAllMoldsInput, validateOutput("get_all_molds"), getAllMoldsHandler);
+router.get("/:id", validateGetMoldByIdInput, validateOutput("get_mold_by_id"), getMoldByIdHandler);
+router.post("/", validateCreateMoldInput, validateOutput("create_mold"), createMoldHandler);
+router.put("/:id", validateUpdateMoldInput, validateOutput("update_mold"), updateMoldHandler);
+router.delete("/:id", validateDeleteMoldInput, validateOutput("delete_mold"), deleteMoldHandler);
 
 export default router;

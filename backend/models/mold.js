@@ -39,7 +39,6 @@ export default class Mold {
 
             await fs.writeFile(filePath, svgContent, "utf-8");
 
-            // IMPORTANTE: Normalizar la ruta para usar barras forward
             const relativePath = path.relative(path.join(__dirname, "../../"), filePath);
             const normalizedPath = relativePath.replace(/\\/g, '/');
             
@@ -54,7 +53,6 @@ export default class Mold {
         try {
             if (!svgPath) return;
 
-            // Normalizar la ruta antes de eliminar
             const normalizedPath = svgPath.replace(/\\/g, '/');
             const fullPath = path.join(__dirname, "../../", normalizedPath);
             await fs.unlink(fullPath);
@@ -63,32 +61,17 @@ export default class Mold {
         }
     }
 
-    static validateInput(moldData) {
-        if (!moldData.name) throw new Error("Name es requerido");
-        if (!moldData.type) throw new Error("Type es requerido");
-
-        return {
-            name: moldData.name,
-            type: moldData.type,
-            width: moldData.width || null,
-            height: moldData.height || null,
-            svg_path: moldData.svg_path || null
-        };
-    }
-
     static async create(db, moldData) {
-        const validData = this.validateInput(moldData);
-
         let svgPath = null;
         if (moldData.svg_content) {
             svgPath = await this.saveSVGFile(moldData.svg_content);
         }
 
         const moldId = await db.createMold(
-            validData.name,
-            validData.type,
-            validData.width,
-            validData.height,
+            moldData.name,
+            moldData.type,
+            moldData.width,
+            moldData.height,
             svgPath
         );
         const row = await db.getMoldById(moldId);
@@ -104,7 +87,9 @@ export default class Mold {
 
     static async findAll(db) {
         const rows = await db.getAllMolds();
-        return rows.map(row => this.createInstanceFromRow(row));
+        return rows.map(function(row) {
+            return this.createInstanceFromRow(row);
+        }.bind(this));
     }
 
     static async update(db, id, updates) {
@@ -146,7 +131,6 @@ export default class Mold {
     }
 
     static createInstanceFromRow(row) {
-        // Normalizar la ruta al crear la instancia
         let svgPath = row.svg_path;
         if (svgPath) {
             svgPath = svgPath.replace(/\\/g, '/');

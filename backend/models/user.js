@@ -20,59 +20,18 @@ export default class User {
             creation_date: this.creation_date
         };
     }
-
-    static checkPasswordStrength(password) {
-        const minLength = 8;
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasLowerCase = /[a-z]/.test(password);
-        const hasNumbers = /\d/.test(password);
-        const hasSpecialChars = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
-        if (password.length < minLength) {
-            throw new Error(`La contraseña debe tener al menos ${minLength} caracteres`);
-        }
-        if (!hasUpperCase) {
-            throw new Error("La contraseña debe contener al menos una letra mayúscula");
-        }
-        if (!hasLowerCase) {
-            throw new Error("La contraseña debe contener al menos una letra minúscula");
-        }
-        if (!hasNumbers) {
-            throw new Error("La contraseña debe contener al menos un número");
-        }
-        if (!hasSpecialChars) {
-            throw new Error("La contraseña debe contener al menos un carácter especial");
-        }
-
-        return true;
-    }
-
-    static validateInput(userData) {
-        if (!userData.name && !userData.username) {
-            throw new Error("Name o username es requerido");
-        }
-        if (!userData.email) {
-            throw new Error("Email es requerido");
-        }
-        if (!userData.password) {
-            throw new Error("Password es requerido");
-        }
-
-        this.checkPasswordStrength(userData.password);
-
-        return {
-            name: userData.name || userData.username,
-            email: userData.email,
-            password: userData.password,
-            role: "user",
-            creation_date: new Date().toISOString()
-        };
-    }
-
+    
     static async create(db, userData) {
-        const validData = this.validateInput(userData);
-        await db.insertUserToDB(validData);
-        const row = await db.getUserByEmail(validData.email);
+        const hashedPassword = await bcrypt.hash(userData.password, 10);
+        
+        await db.insertUserToDB({
+            name: userData.name,
+            email: userData.email,
+            password: hashedPassword,
+            role: userData.role || "user"
+        });
+        
+        const row = await db.getUserByEmail(userData.email);
         return this.createInstanceFromRow(row);
     }
 
