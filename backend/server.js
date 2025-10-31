@@ -132,7 +132,8 @@ class Server {
             this.wsServer = new CollaborativeWebSocketServer(this.httpServer);
             
             this.httpServer.listen(this.port, '0.0.0.0', function() {
-                console.log(`Server running on port ${this.port}`);
+            console.log(`Server running on http://localhost:${this.port}`);
+            console.log(`Accesible desde: http://192.168.100.24:${this.port}`);
         }.bind(this));
         } catch (err) {
             console.error("Error arrancando el servidor:", err);

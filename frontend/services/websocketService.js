@@ -17,7 +17,7 @@ export default class WebSocketService {
         }
 
         this.token = token;
-        const wsUrl = `ws://localhost:5050/ws?token=${encodeURIComponent(token)}`;
+        const wsUrl = `ws://192.168.100.24:3000/ws?token=${encodeURIComponent(token)}`;
 
         console.log("Conectando a WebSocket");
 
@@ -30,7 +30,7 @@ export default class WebSocketService {
     }
 
     handleOpen(event) {
-        console.log("✓ Conexión WebSocket establecida");
+        console.log("Conexión WebSocket establecida");
         this.isConnected = true;
         this.reconnectAttempts = 0;
 
