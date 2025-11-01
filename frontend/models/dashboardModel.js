@@ -105,11 +105,11 @@ export default class DashboardModel {
     }
 
     handleUserJoined(data) {
-        console.log(`👤 ${data.email} se unió a la sesión colaborativa`);
+        console.log(`${data.email} se unió a la sesión colaborativa`);
     }
 
     handleUserLeft(data) {
-        console.log(`👤 ${data.email} dejó la sesión colaborativa`);
+        console.log(`${data.email} dejó la sesión colaborativa`);
     }
 
     redirectToLogin() {

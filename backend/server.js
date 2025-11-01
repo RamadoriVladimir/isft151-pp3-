@@ -28,7 +28,8 @@ class Server {
 
     middlewares() {
         this.app.use(cors());
-        this.app.use(express.json());
+        this.app.use(express.json({ limit: '10mb' }));
+        this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
@@ -133,7 +134,7 @@ class Server {
             
             this.httpServer.listen(this.port, '0.0.0.0', function() {
             console.log(`Server running on http://localhost:${this.port}`);
-            console.log(`Accesible desde: http://192.168.100.24:${this.port}`);
+            console.log(`Accesible desde la red local en el puerto:${this.port}`);
         }.bind(this));
         } catch (err) {
             console.error("Error arrancando el servidor:", err);

@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: app_tizadas
+    restart: unless-stopped
+    ports:
+      - "5050:5050"
+    environment:
+      - NODE_ENV=production
+      - PORT=5050
+      - DB_PATH=/app/data/db/database.sqlite  # CAMBIAR RUTA DE LA BD
+      - DB_NAME=login_app
+      - JWT_SECRET=${JWT_SECRET:-change_this_secret_in_production}
+    volumes:
+      # Montar solo la base de datos en una ubicación diferente
+      - ../data/db:/app/data/db
+      # Persistencia de archivos SVG
+      - ../data/storage:/app/storage
+      # Logs
+      - ./logs:/app/logs
+    networks:
+      - tizadas-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5050/ws-status', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/db
+  svg_storage:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/storage
+
+networks:
+  tizadas-network:
+    driver: bridge

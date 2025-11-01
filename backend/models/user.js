@@ -1,4 +1,4 @@
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export default class User {
     constructor({ id = null, name, email, password, role = "user", creation_date = null }, db = null) {

@@ -1,0 +1,55 @@
+# ================================
+# Dockerfile - App de Tizadas
+# ================================
+FROM node:24-alpine
+
+LABEL description="Sistema colaborativo de gestión de moldes"
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache sqlite
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar package.json primero
+COPY backend/package*.json ./backend/
+
+# Instalar dependencias del backend
+WORKDIR /app/backend
+RUN npm install --only=production
+
+# Volver al directorio raíz
+WORKDIR /app
+
+# Copiar TODO el código fuente
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+
+# Crear directorios necesarios
+RUN mkdir -p /app/data/db \
+    && mkdir -p /app/data/storage/svgs \
+    && mkdir -p /app/logs \
+    && chmod -R 755 /app/data/storage
+
+# Exponer puerto
+EXPOSE 5050
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:5050/ws-status', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
+
+# Variables de entorno por defecto
+ENV NODE_ENV=production \
+    PORT=5050 \
+    DB_PATH=/app/data/db/database.sqlite
+
+# Usuario no privilegiado
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Comando de inicio
+WORKDIR /app/backend
+CMD ["node", "main.js"]

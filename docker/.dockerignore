@@ -1,0 +1,69 @@
+# Dependencias
+node_modules
+npm-debug.log
+package-lock.json
+
+# Base de datos local
+backend/db/*.sqlite
+backend/db/*.sqlite-*
+
+# Archivos de configuración local
+backend/.env.local
+backend/.env.development
+
+# Archivos temporales
+*.tmp
+*.temp
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentación
+README.md
+docs/
+
+# Scripts de setup locales
+setup.sh
+setup.bat
+start.sh
+start.bat
+
+# Archivos de desarrollo
+*.md
+.editorconfig
+.prettierrc
+.eslintrc
+
+# Tests
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Storage local
+storage/svgs/*.svg
+
+# Datos locales
+data/
+
+

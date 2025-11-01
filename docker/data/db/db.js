@@ -1,5 +1,6 @@
-import bcrypt from "bcryptjs";
-import Database from "better-sqlite3";
+import bcrypt from "bcrypt";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -12,7 +13,10 @@ class SQLiteConnection {
 
     async connect() {
         try {
-            this.db = new Database(this.dbPath);
+            this.db = await open({
+                filename: this.dbPath,
+                driver: sqlite3.Database,
+            });
 
             await this.initializeTables();
             console.log("Conectado correctamente a SQLite");
@@ -27,14 +31,14 @@ class SQLiteConnection {
 
     async disconnect() {
         if (this.db) {
-            this.db.close();
+            await this.db.close();
             console.log("Desconectado de SQLite");
         }
     }
 
     async initializeTables() {
         try {
-            this.db.exec(`
+            await this.db.exec(`
                 ALTER TABLE molds ADD COLUMN svg_path VARCHAR(300);
             `);
             console.log("Columna svg_path agregada a la tabla molds");
@@ -44,7 +48,7 @@ class SQLiteConnection {
             }
         }
 
-        this.db.exec(`
+        await this.db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name VARCHAR(50) NOT NULL,
@@ -122,23 +126,24 @@ class SQLiteConnection {
         }
         const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-        const stmt = this.db.prepare(
-            `INSERT INTO users (name, email, pass_hash, role) VALUES (?, ?, ?, ?)`
+        await this.db.run(
+            `INSERT INTO users (name, email, pass_hash, role) VALUES (?, ?, ?, ?)`,
+            [userData.name, userData.email, hashedPassword, userData.role || "user"]
         );
-        stmt.run([userData.name, userData.email, hashedPassword, userData.role || "user"]);
 
         console.log(`Usuario ${userData.name} insertado correctamente`);
     }
+
 
     async getUserByEmail(email) {
         if (!this.db) {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
-            `SELECT id, name, email, pass_hash, role, creation_date FROM users WHERE email = ?`
+        return await this.db.get(
+            `SELECT id, name, email, pass_hash, role, creation_date FROM users WHERE email = ?`,
+            [email]
         );
-        return stmt.get([email]);
     }
 
     async getUserById(id) {
@@ -146,10 +151,10 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
-            `SELECT id, name, email, pass_hash, role, creation_date FROM users WHERE id = ?`
+        return await this.db.get(
+            `SELECT id, name, email, pass_hash, role, creation_date FROM users WHERE id = ?`,
+            [id]
         );
-        return stmt.get([id]);
     }
 
     // ==================== COLLECTIONS ====================
@@ -158,13 +163,14 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
-            `INSERT INTO collections (name, description, users_id) VALUES (?, ?, ?)`
+        const result = await this.db.run(
+            `INSERT INTO collections (name, description, users_id) VALUES (?, ?, ?)`,
+            [name, description, userId]
         );
-        const result = stmt.run([name, description, userId]);
 
-        return result.lastInsertRowid;
+        return result.lastID;
     }
+
 
     // ==================== DRAFTS ====================
     async createDraft(description, userId, collectionsId) {
@@ -172,12 +178,12 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
-            `INSERT INTO drafts (description, users_id, collections_id) VALUES (?, ?, ?)`
+        const result = await this.db.run(
+            `INSERT INTO drafts (description, users_id, collections_id) VALUES (?, ?, ?)`,
+            [description, userId, collectionsId]
         );
-        const result = stmt.run([description, userId, collectionsId]);
 
-        return result.lastInsertRowid;
+        return result.lastID;
     }
 
     async addMoldToDraft(draftId, moldId, positionX, positionY, rotation, scaling) {
@@ -185,13 +191,13 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
+        const result = await this.db.run(
             `INSERT INTO molds_drafts (position_x, position_y, rotation, scaling, drafts_id, molds_id) 
-            VALUES (?, ?, ?, ?, ?, ?)`
+            VALUES (?, ?, ?, ?, ?, ?)`,
+            [positionX, positionY, rotation, scaling, draftId, moldId]
         );
-        const result = stmt.run([positionX, positionY, rotation, scaling, draftId, moldId]);
 
-        return result.lastInsertRowid;
+        return result.lastID;
     }
 
     async getDraftsByUser(userId) {
@@ -199,27 +205,27 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
+        return await this.db.all(
             `SELECT d.*, c.name as collection_name 
             FROM drafts d 
             JOIN collections c ON d.collections_id = c.id 
-            WHERE d.users_id = ?`
+            WHERE d.users_id = ?`,
+            [userId]
         );
-        return stmt.all([userId]);
     }
 
     // ==================== MOLDS ====================
-    async createMold(name, type, width, height, svgPath) {
+     async createMold(name, type, width, height, svgPath) {
         if (!this.db) {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
-            `INSERT INTO molds (name, type, width, height, svg_path) VALUES (?, ?, ?, ?, ?)`
+        const result = await this.db.run(
+            `INSERT INTO molds (name, type, width, height, svg_path) VALUES (?, ?, ?, ?, ?)`,
+            [name, type, width, height, svgPath]
         );
-        const result = stmt.run([name, type, width, height, svgPath]);
 
-        return result.lastInsertRowid;
+        return result.lastID;
     }
 
     async getMoldById(id) {
@@ -227,10 +233,10 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
-            `SELECT id, name, type, width, height, svg_path, creation_date FROM molds WHERE id = ?`
+        return await this.db.get(
+            `SELECT id, name, type, width, height, svg_path, creation_date FROM molds WHERE id = ?`,
+            [id]
         );
-        return stmt.get([id]);
     }
 
     async getAllMolds() {
@@ -238,10 +244,9 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
+        return await this.db.all(
             `SELECT id, name, type, width, height, svg_path, creation_date FROM molds`
         );
-        return stmt.all();
     }
 
     async updateMold(id, moldData) {
@@ -249,10 +254,10 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(
-            `UPDATE molds SET name = ?, type = ?, width = ?, height = ?, svg_path = ? WHERE id = ?`
+        await this.db.run(
+            `UPDATE molds SET name = ?, type = ?, width = ?, height = ?, svg_path = ? WHERE id = ?`,
+            [moldData.name, moldData.type, moldData.width, moldData.height, moldData.svg_path, id]
         );
-        stmt.run([moldData.name, moldData.type, moldData.width, moldData.height, moldData.svg_path, id]);
     }
 
     async deleteMold(id) {
@@ -260,8 +265,7 @@ class SQLiteConnection {
             throw new Error("La base de datos no está inicializada. Llama a connect() primero.");
         }
 
-        const stmt = this.db.prepare(`DELETE FROM molds WHERE id = ?`);
-        stmt.run([id]);
+        await this.db.run(`DELETE FROM molds WHERE id = ?`, [id]);
     }
 }
 

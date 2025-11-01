@@ -17,7 +17,7 @@ export default class WebSocketService {
         }
 
         this.token = token;
-        const wsUrl = `ws://192.168.100.24:5050/ws?token=${encodeURIComponent(token)}`;
+        const wsUrl = `ws://192.168.56.1:5050/ws?token=${encodeURIComponent(token)}`;
 
         console.log("Conectando a WebSocket");
 
