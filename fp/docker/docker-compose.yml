@@ -12,14 +12,14 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5050
-      - DB_PATH=/app/data/db/database.sqlite  # CAMBIAR RUTA DE LA BD
+      - DB_PATH=/app/data/db/database.sqlite
       - DB_NAME=login_app
       - JWT_SECRET=${JWT_SECRET:-change_this_secret_in_production}
     volumes:
-      # Montar solo la base de datos en una ubicación diferente
-      - ../data/db:/app/data/db
+      # Persistencia de base de datos
+      - db_data:/app/data/db
       # Persistencia de archivos SVG
-      - ../data/storage:/app/storage
+      - svg_storage:/app/data/storage
       # Logs
       - ./logs:/app/logs
     networks:
@@ -29,7 +29,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
 volumes:
   db_data:

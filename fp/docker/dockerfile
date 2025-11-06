@@ -5,18 +5,23 @@ FROM node:24-alpine
 
 LABEL description="Sistema colaborativo de gestión de moldes"
 
-# Instalar dependencias del sistema
-RUN apk add --no-cache sqlite
+# Instalar dependencias del sistema necesarias para better-sqlite3
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    sqlite
 
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json primero
+# Copiar package.json primero para aprovechar cache de Docker
 COPY backend/package*.json ./backend/
 
-# Instalar dependencias del backend
+# Instalar dependencias del backend (incluyendo better-sqlite3)
 WORKDIR /app/backend
-RUN npm install --only=production
+RUN npm install --only=production && \
+    npm cache clean --force
 
 # Volver al directorio raíz
 WORKDIR /app
@@ -25,25 +30,27 @@ WORKDIR /app
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-# Crear directorios necesarios
+# Crear directorios necesarios con permisos correctos
 RUN mkdir -p /app/data/db \
     && mkdir -p /app/data/storage/svgs \
     && mkdir -p /app/logs \
-    && chmod -R 755 /app/data/storage
+    && chmod -R 755 /app/data \
+    && chmod -R 755 /app/logs
 
 # Exponer puerto
 EXPOSE 5050
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Healthcheck mejorado
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:5050/ws-status', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
 
 # Variables de entorno por defecto
 ENV NODE_ENV=production \
     PORT=5050 \
-    DB_PATH=/app/data/db/database.sqlite
+    DB_PATH=/app/data/db/database.sqlite \
+    DB_NAME=login_app
 
-# Usuario no privilegiado
+# Crear usuario no privilegiado
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
     chown -R nodejs:nodejs /app

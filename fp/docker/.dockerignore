@@ -1,11 +1,13 @@
 # Dependencias
 node_modules
 npm-debug.log
+yarn.lock
 package-lock.json
 
-# Base de datos local
+# Base de datos local (se crea en volumen)
 backend/db/*.sqlite
 backend/db/*.sqlite-*
+data/
 
 # Archivos de configuración local
 backend/.env.local
@@ -34,9 +36,10 @@ desktop.ini
 .gitattributes
 
 # Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
+docker/Dockerfile
+docker/docker-compose.yml
+docker/.dockerignore
+docker/logs/
 
 # Documentación
 README.md
@@ -60,10 +63,8 @@ tests/
 *.test.js
 *.spec.js
 
-# Storage local
-storage/svgs/*.svg
+# Storage local (se crea en volumen)
+storage/
 
-# Datos locales
-data/
-
-
+# Release scripts
+release/
