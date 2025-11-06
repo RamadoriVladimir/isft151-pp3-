@@ -10,7 +10,6 @@ import {
 
 const router = express.Router();
 
-// conexión a la base de datos
 router.use(function(req, res, next) {
     req.db = conn;
     next();
@@ -43,6 +42,15 @@ async function handleRegister(req, res, next) {
         });
 
     } catch (err) {
+        console.error("Error en registro:", err);
+        
+        if (err.message && err.message.includes("contraseña")) {
+            return res.status(400).json({
+                message: "Error de validación",
+                errors: { password: [err.message] }
+            });
+        }
+        
         next(err);
     }
 }
@@ -69,6 +77,15 @@ async function handleLogin(req, res, next) {
         });
 
     } catch (err) {
+        console.error("Error en login:", err);
+        
+        if (err.message === "Credenciales inválidas") {
+            return res.status(401).json({
+                message: "Email o contraseña incorrectos",
+                errors: { general: "Las credenciales proporcionadas no son válidas" }
+            });
+        }
+        
         next(err);
     }
 }

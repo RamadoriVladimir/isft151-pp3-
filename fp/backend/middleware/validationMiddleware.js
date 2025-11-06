@@ -6,6 +6,32 @@ export class ValidationError extends Error {
     }
 }
 
+export function isPasswordValid(password) {
+    const errors = [];
+    
+    if (password.length < 8) {
+        errors.push("La contraseña debe tener al menos 8 caracteres");
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+        errors.push("La contraseña debe contener al menos una letra mayúscula");
+    }
+    
+    if (!/[a-z]/.test(password)) {
+        errors.push("La contraseña debe contener al menos una letra minúscula");
+    }
+    
+    if (!/[0-9]/.test(password)) {
+        errors.push("La contraseña debe contener al menos un número");
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        errors.push("La contraseña debe contener al menos un carácter especial");
+    }
+    
+    return errors;
+}
+
 export function getAPISpecifications() {
     return {
         login: {
@@ -30,7 +56,7 @@ export function getAPISpecifications() {
                     }
                 },
                 error: {
-                    status: [401, 500],
+                    status: [401, 400, 500],
                     schema: {
                         message: { type: "string" }
                     }
@@ -46,7 +72,7 @@ export function getAPISpecifications() {
                     name: { type: "string", minLength: 1, maxLength: 50 },
                     username: { type: "string", minLength: 1, maxLength: 50 },
                     email: { type: "string", format: "email", maxLength: 100 },
-                    password: { type: "string", minLength: 8 },
+                    password: { type: "string", minLength: 8, requiresFormat: true },
                     role: { type: "string", enum: ["admin", "user", "moderator"] }
                 }
             },
@@ -320,7 +346,7 @@ export function getAPISpecifications() {
     };
 }
 
-export function validateNumberField(fieldName, value, schema) {
+function validateNumberField(fieldName, value, schema) {
     if (typeof value !== "number") {
         throw new Error(`${fieldName} debe ser de tipo number`);
     }
@@ -330,13 +356,13 @@ export function validateNumberField(fieldName, value, schema) {
     return true;
 }
 
-export function validateArrayField(fieldName, value, schema) {
+function validateArrayField(fieldName, value, schema) {
     if (!Array.isArray(value)) {
         throw new Error(`${fieldName} debe ser un array`);
     }
     
     if (schema.items) {
-        value.forEach(function(item, index) {
+        value.forEach((item, index) => {
             validateObjectField(`${fieldName}[${index}]`, item, schema.items);
         });
     }
@@ -344,13 +370,13 @@ export function validateArrayField(fieldName, value, schema) {
     return true;
 }
 
-export function validateObjectField(fieldName, value, schema) {
+function validateObjectField(fieldName, value, schema) {
     if (typeof value !== "object" || value === null) {
         throw new Error(`${fieldName} debe ser un objeto`);
     }
     
     if (schema.properties) {
-        schema.properties.forEach(function(prop) {
+        schema.properties.forEach((prop) => {
             if (!Object.prototype.hasOwnProperty.call(value, prop)) {
                 throw new Error(`Propiedad ${prop} faltante en ${fieldName}`);
             }
@@ -360,7 +386,7 @@ export function validateObjectField(fieldName, value, schema) {
     return true;
 }
 
-export function validatePatternField(fieldName, value, schema) {
+function validatePatternField(fieldName, value, schema) {
     if (schema.pattern) {
         const regex = new RegExp(schema.pattern);
         if (!regex.test(value.toString())) {
@@ -370,16 +396,20 @@ export function validatePatternField(fieldName, value, schema) {
     return true;
 }
 
-export function validateFieldExtended(fieldName, value, schema) {
+function isFieldValid(fieldName, value, schema) {
     if (value === undefined || value === null) {
         throw new Error(`${fieldName} no puede ser undefined o null`);
     }
 
+    // Validación de tipo
     if (schema.type === "string" && typeof value !== "string") {
         throw new Error(`${fieldName} debe ser de tipo string`);
     }
-    if (schema.type === "number" && typeof value !== "number") {
-        throw new Error(`${fieldName} debe ser de tipo number`);
+    if (schema.type === "number") {
+        if (typeof value !== "number") {
+            throw new Error(`${fieldName} debe ser de tipo number`);
+        }
+        validateNumberField(fieldName, value, schema);
     }
     if (schema.type === "array") {
         return validateArrayField(fieldName, value, schema);
@@ -388,6 +418,7 @@ export function validateFieldExtended(fieldName, value, schema) {
         return validateObjectField(fieldName, value, schema);
     }
     
+    // Validación de formato email
     if (schema.format === "email") {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
@@ -395,53 +426,67 @@ export function validateFieldExtended(fieldName, value, schema) {
         }
     }
     
+    // Validación de longitud
     if (schema.minLength && value.length < schema.minLength) {
         throw new Error(`${fieldName} debe tener al menos ${schema.minLength} caracteres`);
     }
     if (schema.maxLength && value.length > schema.maxLength) {
         throw new Error(`${fieldName} no debe exceder ${schema.maxLength} caracteres`);
     }
+    
+    // Validación de enum
     if (schema.enum && !schema.enum.includes(value)) {
         throw new Error(`${fieldName} debe ser uno de: ${schema.enum.join(", ")}`);
     }
-    if (schema.type === "number") {
-        validateNumberField(fieldName, value, schema);
+    
+    // Validación especial para contraseñas
+    if (schema.requiresFormat && fieldName === "password") {
+        const passwordErrors = isPasswordValid(value);
+        if (passwordErrors.length > 0) {
+            const error = new Error("Contraseña no cumple los requisitos");
+            error.passwordErrors = passwordErrors;
+            throw error;
+        }
     }
     
+    // Validación de patrón
     validatePatternField(fieldName, value, schema);
     
     return true;
 }
 
-export function validateAPIInputExtended(endpoint, req) {
+function validateAPIInput(endpoint, req) {
     const specs = getAPISpecifications();
     const spec = specs[endpoint];
 
     if (!spec) {
         throw new Error(`Endpoint ${endpoint} no tiene especificación definida`);
     }
+    
     if (req.method !== spec.method) {
         throw new Error(`Método HTTP inválido. Se esperaba ${spec.method}, se recibió ${req.method}`);
     }
 
     const data = req.method === "GET" ? req.params : req.body;
 
+    // Validar campos requeridos
     for (const field of spec.input.required) {
-        if (data[field] === undefined || data[field] === null) {
+        if (data[field] === undefined || data[field] === null || data[field] === "") {
             throw new Error(`Campo requerido faltante: ${field}`);
         }
     }
     
+    // Validar campos según esquema de api
     for (const field in data) {
         if (spec.input.schema[field]) {
-            validateFieldExtended(field, data[field], spec.input.schema[field]);
+            isFieldValid(field, data[field], spec.input.schema[field]);
         }
     }
 
     return true;
 }
 
-export function validateOutputSchemaExtended(data, schema) {
+function validateOutputSchema(data, schema) {
     for (const field in schema) {
         const fieldSpec = schema[field];
 
@@ -466,7 +511,7 @@ export function validateOutputSchemaExtended(data, schema) {
     return true;
 }
 
-export function validateAPIOutputExtended(endpoint, status, data) {
+function validateAPIOutput(endpoint, status, data) {
     const specs = getAPISpecifications();
     const spec = specs[endpoint];
 
@@ -474,13 +519,9 @@ export function validateAPIOutputExtended(endpoint, status, data) {
         throw new Error(`Endpoint ${endpoint} no tiene especificación definida`);
     }
 
-    let outputSpec;
-    
-    if (status >= 200 && status < 300) {
-        outputSpec = spec.output.success;
-    } else {
-        outputSpec = spec.output.error;
-    }
+    const outputSpec = status >= 200 && status < 300 
+        ? spec.output.success 
+        : spec.output.error;
 
     const expectedStatus = Array.isArray(outputSpec.status) 
         ? outputSpec.status 
@@ -490,73 +531,72 @@ export function validateAPIOutputExtended(endpoint, status, data) {
         throw new Error(`Status code ${status} no esperado para ${endpoint}. Esperados: ${expectedStatus.join(", ")}`);
     }
 
-    validateOutputSchemaExtended(data, outputSpec.schema);
+    validateOutputSchema(data, outputSpec.schema);
 
     return true;
 }
 
-// Middlewares de validacion para moldes
-export function validateGetAllMoldsInput(req, res, next) {
-    try {
-        validateAPIInputExtended("get_all_molds", req);
-        next();
-    } catch (error) {
-        return res.status(400).json({
-            message: "Errores de validación",
-            errors: { general: error.message }
-        });
-    }
+function createInputValidator(endpoint, errorFormatter = null) {
+    return function(req, res, next) {
+        try {
+            validateAPIInput(endpoint, req);
+            next();
+        } catch (error) {
+            const formattedErrors = errorFormatter 
+                ? errorFormatter(error) 
+                : { general: error.message };
+            
+            return res.status(400).json({
+                message: "Errores de validación",
+                errors: formattedErrors
+            });
+        }
+    };
 }
 
-export function validateGetMoldByIdInput(req, res, next) {
-    try {
-        validateAPIInputExtended("get_mold_by_id", req);
-        next();
-    } catch (error) {
-        return res.status(400).json({
-            message: "Errores de validación",
-            errors: { general: error.message }
-        });
+function formatLoginErrors(error) {
+    const fieldErrors = {};
+    
+    if (error.message.includes("email")) {
+        fieldErrors.email = error.message;
+    } else if (error.message.includes("password")) {
+        fieldErrors.password = error.message;
+    } else {
+        fieldErrors.general = error.message;
     }
+    
+    return fieldErrors;
 }
 
-export function validateCreateMoldInput(req, res, next) {
-    try {
-        validateAPIInputExtended("create_mold", req);
-        next();
-    } catch (error) {
-        return res.status(400).json({
-            message: "Errores de validación",
-            errors: { general: error.message }
-        });
+function formatRegisterErrors(error) {
+    const fieldErrors = {};
+    
+    if (error.passwordErrors) {
+        fieldErrors.password = error.passwordErrors;
+    } else if (error.message.includes("name") || error.message.includes("username")) {
+        fieldErrors.name = error.message;
+    } else if (error.message.includes("email")) {
+        fieldErrors.email = error.message;
+    } else if (error.message.includes("password")) {
+        fieldErrors.password = [error.message];
+    } else {
+        fieldErrors.general = error.message;
     }
+    
+    return fieldErrors;
 }
 
-export function validateUpdateMoldInput(req, res, next) {
-    try {
-        validateAPIInputExtended("update_mold", req);
-        next();
-    } catch (error) {
-        return res.status(400).json({
-            message: "Errores de validación",
-            errors: { general: error.message }
-        });
-    }
-}
+// Middlewares de autenticación con formateo especial
+export const validateLoginInput = createInputValidator("login", formatLoginErrors);
+export const validateRegisterInput = createInputValidator("register", formatRegisterErrors);
 
-export function validateDeleteMoldInput(req, res, next) {
-    try {
-        validateAPIInputExtended("delete_mold", req);
-        next();
-    } catch (error) {
-        return res.status(400).json({
-            message: "Errores de validación",
-            errors: { general: error.message }
-        });
-    }
-}
+// Middlewares de moldes con formateo estándar
+export const validateGetAllMoldsInput = createInputValidator("get_all_molds");
+export const validateGetMoldByIdInput = createInputValidator("get_mold_by_id");
+export const validateCreateMoldInput = createInputValidator("create_mold");
+export const validateUpdateMoldInput = createInputValidator("update_mold");
+export const validateDeleteMoldInput = createInputValidator("delete_mold");
 
-// Middleware para validar salidas
 export function validateOutput(endpoint) {
     return function(req, res, next) {
         const originalSend = res.send;
@@ -564,51 +604,22 @@ export function validateOutput(endpoint) {
         res.send = function(data) {
             try {
                 if (res.statusCode >= 200 && res.statusCode < 300) {
-                    let parsedData;
-                    try {
-                        parsedData = typeof data === "string" ? JSON.parse(data) : data;
-                    } catch (e) {
-                        parsedData = data;
-                    }
-                    validateAPIOutputExtended(endpoint, res.statusCode, parsedData);
+                    const parsedData = typeof data === "string" 
+                        ? JSON.parse(data) 
+                        : data;
+                    validateAPIOutput(endpoint, res.statusCode, parsedData);
                 }
-                originalSend.call(this, data);
             } catch (error) {
                 console.error("Error validando salida:", error);
-                originalSend.call(this, data);
             }
+            
+            originalSend.call(this, data);
         };
         
         next();
     };
 }
 
-// Middlewares de validacion para autenticacion
-export function validateLoginInput(req, res, next) {
-    try {
-        validateAPIInputExtended("login", req);
-        next();
-    } catch (error) {
-        return res.status(400).json({
-            message: "Errores de validación",
-            errors: { general: error.message }
-        });
-    }
-}
-
-export function validateRegisterInput(req, res, next) {
-    try {
-        validateAPIInputExtended("register", req);
-        next();
-    } catch (error) {
-        return res.status(400).json({
-            message: "Errores de validación",
-            errors: { general: error.message }
-        });
-    }
-}
-
-// Middleware de manejo de errores
 export function errorHandler(err, req, res, next) {
     console.error("Error:", err);
 
@@ -620,21 +631,14 @@ export function errorHandler(err, req, res, next) {
     }
 
     const validationKeywords = [
-        "contraseña",
-        "password",
-        "email",
-        "requerido",
-        "caracteres",
-        "mayúscula",
-        "minúscula",
-        "número",
-        "especial",
-        "inválido"
+        "contraseña", "password", "email", "requerido",
+        "caracteres", "mayúscula", "minúscula", "número",
+        "especial", "inválido"
     ];
 
-    const isValidationError = validationKeywords.some(function(keyword) {
-        return err.message.toLowerCase().includes(keyword);
-    });
+    const isValidationError = validationKeywords.some(
+        keyword => err.message.toLowerCase().includes(keyword)
+    );
 
     if (isValidationError) {
         return res.status(400).json({
@@ -643,12 +647,14 @@ export function errorHandler(err, req, res, next) {
         });
     }
 
+    // Error de JWT
     if (err.name === "JsonWebTokenError") {
         return res.status(401).json({
             message: "Token inválido o expirado"
         });
     }
 
+    // Error genérico del servidor
     return res.status(500).json({
         message: "Error interno del servidor",
         error: process.env.NODE_ENV === "development" ? err.message : undefined
@@ -657,22 +663,15 @@ export function errorHandler(err, req, res, next) {
 
 export default {
     ValidationError,
+    isPasswordValid,
     getAPISpecifications,
-    validateNumberField,
-    validateArrayField,
-    validateObjectField,
-    validatePatternField,
-    validateFieldExtended,
-    validateAPIInputExtended,
-    validateOutputSchemaExtended,
-    validateAPIOutputExtended,
+    validateOutput,
+    validateLoginInput,
+    validateRegisterInput,
     validateGetAllMoldsInput,
     validateGetMoldByIdInput,
     validateCreateMoldInput,
     validateUpdateMoldInput,
     validateDeleteMoldInput,
-    validateOutput,
-    validateLoginInput,
-    validateRegisterInput,
     errorHandler
 };
