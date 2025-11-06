@@ -15,22 +15,17 @@ RUN apk add --no-cache \
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json primero para aprovechar cache de Docker
-COPY backend/package*.json ./backend/
-
-# Instalar dependencias del backend (incluyendo better-sqlite3)
-WORKDIR /app/backend
-RUN npm install --only=production && \
-    npm cache clean --force
-
-# Volver al directorio raíz
-WORKDIR /app
-
-# Copiar TODO el código fuente
+# Copiar todo el código primero
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
+# Instalar dependencias del backend (incluyendo better-sqlite3)
+WORKDIR /app/backend
+RUN npm ci --only=production && \
+    npm cache clean --force
+
 # Crear directorios necesarios con permisos correctos
+WORKDIR /app
 RUN mkdir -p /app/data/db \
     && mkdir -p /app/data/storage/svgs \
     && mkdir -p /app/logs \
