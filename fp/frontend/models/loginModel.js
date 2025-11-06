@@ -1,3 +1,5 @@
+import apiConfig from "../config/apiConfig.js";
+
 export default class LoginModel {
     constructor() {
         this.userData = null;
@@ -8,9 +10,8 @@ export default class LoginModel {
 
     async authenticate(email, password) {
         try {
-            const res = await fetch("http://localhost:5050/auth/login", {
+            const res = await apiConfig.fetch("/auth/login", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
             });
 

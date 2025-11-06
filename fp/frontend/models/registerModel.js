@@ -1,3 +1,5 @@
+import apiConfig from "../config/apiConfig.js";
+
 export class RegisterModel {
     constructor() {
         this.successMessage = null;
@@ -7,9 +9,8 @@ export class RegisterModel {
 
     async registerUser(username, email, password) {
         try {
-            const res = await fetch("http://localhost:5050/auth/register", {
+            const res = await apiConfig.fetch("/auth/register", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, email, password }),
             });
 

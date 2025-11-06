@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
+import os from 'os';
 import authRoutes from './routes/authRoutes.js';
 import moldRoutes from './routes/moldRoutes.js';
 import conn from './db/db.js';
@@ -27,13 +28,28 @@ class Server {
     }
 
     middlewares() {
-        this.app.use(cors());
+        // Configuración CORS más permisiva para desarrollo y producción
+        const corsOptions = {
+            origin: function (origin, callback) {
+                // Permitir peticiones sin origin (como apps móviles o Postman)
+                if (!origin) return callback(null, true);
+                
+                // En desarrollo, permitir cualquier localhost
+                if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+                    return callback(null, true);
+                }
+                
+                // En producción, podrías especificar dominios específicos
+                // Por ahora, permitimos cualquier origen
+                callback(null, true);
+            },
+            credentials: true
+        };
+
+        this.app.use(cors(corsOptions));
         this.app.use(express.json({ limit: '10mb' }));
         this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        
         this.app.use(express.static(path.join(__dirname, "../frontend")));
         
         const storagePath = path.join(__dirname, "../storage");
@@ -51,9 +67,6 @@ class Server {
     routes() {
         this.app.use("/auth", authRoutes);
         this.app.use("/mold", moldRoutes);
-
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
 
         this.app.get("/", function(req, res) {
             res.sendFile(path.join(__dirname, "../frontend/index.html"));
@@ -132,10 +145,35 @@ class Server {
             
             this.wsServer = new CollaborativeWebSocketServer(this.httpServer);
             
+            // Escuchar en todas las interfaces de red (0.0.0.0)
             this.httpServer.listen(this.port, '0.0.0.0', function() {
-            console.log(`Server running on http://localhost:${this.port}`);
-            console.log(`Accesible desde la red local en el puerto:${this.port}`);
-        }.bind(this));
+                console.log(`\n=== Servidor iniciado exitosamente ===`);
+                console.log(`📡 Servidor HTTP corriendo en puerto: ${this.port}`);
+                console.log(`🔌 WebSocket Server activo`);
+                console.log(`\n📍 Acceso local:`);
+                console.log(`   http://localhost:${this.port}`);
+                
+                // Obtener las IPs de red local
+                const networkInterfaces = os.networkInterfaces();
+                const addresses = [];
+                
+                Object.keys(networkInterfaces).forEach(function(interfaceName) {
+                    networkInterfaces[interfaceName].forEach(function(iface) {
+                        if (iface.family === 'IPv4' && !iface.internal) {
+                            addresses.push(iface.address);
+                        }
+                    });
+                });
+                
+                if (addresses.length > 0) {
+                    console.log(`\n🌐 Acceso desde la red local:`);
+                    addresses.forEach(function(addr) {
+                        console.log(`   http://${addr}:${this.port}`);
+                    }.bind(this));
+                }
+                
+                console.log(`\n====================================\n`);
+            }.bind(this));
         } catch (err) {
             console.error("Error arrancando el servidor:", err);
             process.exit(1);

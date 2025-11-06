@@ -1,3 +1,4 @@
+import apiConfig from "../config/apiConfig.js";
 import WebSocketService from "../services/websocketService.js";
 
 export default class DashboardModel {
@@ -134,10 +135,9 @@ export default class DashboardModel {
 
     async fetchMolds() {
         try {
-            const res = await fetch("http://localhost:5050/mold/", {
+            const res = await apiConfig.fetch("/mold/", {
                 method: "GET",
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${this.token}`
                 }
             });
@@ -182,10 +182,9 @@ export default class DashboardModel {
                 svg_content: svgContent
             };
 
-            const res = await fetch("http://localhost:5050/mold/", {
+            const res = await apiConfig.fetch("/mold/", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${this.token}`
                 },
                 body: JSON.stringify(moldData)
@@ -219,10 +218,9 @@ export default class DashboardModel {
 
     async deleteMold(moldId) {
         try {
-            const res = await fetch(`http://localhost:5050/mold/${moldId}`, {
+            const res = await apiConfig.fetch(`/mold/${moldId}`, {
                 method: "DELETE",
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${this.token}`
                 }
             });

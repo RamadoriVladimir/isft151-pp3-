@@ -1,3 +1,4 @@
+import apiConfig from "../config/apiConfig.js";
 import WebSocketService from "../services/websocketService.js";
 
 export default class CanvasModel {
@@ -135,10 +136,9 @@ export default class CanvasModel {
 
     async getMolds() {
         try {
-            const res = await fetch("http://localhost:5050/mold/", {
+            const res = await apiConfig.fetch("/mold/", {
                 method: "GET",
                 headers: {
-                    "Content-Type": "application/json",
                     "Authorization": `Bearer ${this.token}`
                 }
             });
@@ -209,7 +209,7 @@ export default class CanvasModel {
         const img = new Image();
         img.crossOrigin = "anonymous";
         
-        const imagePath = `http://localhost:5050/${normalizedPath}`;
+        const imagePath = apiConfig.getApiUrl(`/${normalizedPath}`);
         console.log("Cargando imagen desde:", imagePath);
         
         img.src = imagePath;
@@ -234,7 +234,9 @@ export default class CanvasModel {
     async loadSVGAsInline(obj, normalizedPath) {
         try {
             console.log("Intentando cargar SVG como contenido inline");
-            const response = await fetch(`http://localhost:5050/${normalizedPath}`);
+            const response = await apiConfig.fetch(`/${normalizedPath}`, {
+                method: "GET"
+            });
             
             if (!response.ok) {
                 console.error("No se pudo cargar el contenido SVG. Status:", response.status);

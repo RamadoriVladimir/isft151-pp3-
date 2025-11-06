@@ -1,3 +1,5 @@
+import apiConfig from "../config/apiConfig.js";
+
 export default class WebSocketService {
     constructor() {
         this.ws = null;
@@ -17,7 +19,7 @@ export default class WebSocketService {
         }
 
         this.token = token;
-        const wsUrl = `ws://192.168.56.1:5050/ws?token=${encodeURIComponent(token)}`;
+        const wsUrl = apiConfig.getWebSocketUrl(token);
 
         console.log("Conectando a WebSocket");
 
