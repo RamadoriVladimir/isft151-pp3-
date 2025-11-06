@@ -17,10 +17,11 @@ export default class LoginViewComponent extends HTMLElement {
         this.container.className = "login-container";
 
         this.loginTitle = document.createElement("h2");
-        this.loginTitle.textContent = "Login";
+        this.loginTitle.textContent = "Iniciar Sesión";
 
         this.form = document.createElement("form");
 
+        // Email field
         this.emailWrapper = document.createElement("div");
         this.emailWrapper.className = "input-wrapper";
         this.inputEmail = document.createElement("input");
@@ -33,6 +34,7 @@ export default class LoginViewComponent extends HTMLElement {
         this.emailWrapper.appendChild(this.inputEmail);
         this.emailWrapper.appendChild(this.emailError);
 
+        // Password field
         this.passwordWrapper = document.createElement("div");
         this.passwordWrapper.className = "input-wrapper";
         this.inputPassword = document.createElement("input");
@@ -57,11 +59,10 @@ export default class LoginViewComponent extends HTMLElement {
 
         this.registerLink = document.createElement("a");
         this.registerLink.href = "/auth/register";
-        this.registerLink.textContent = "¿No tenes una cuenta? Regístrate";
+        this.registerLink.textContent = "¿No tienes una cuenta? Regístrate";
 
         this.registerContainer.appendChild(this.registerLink);
 
-        this.appendChild(this.container);
         this.form.appendChild(this.emailWrapper);
         this.form.appendChild(this.passwordWrapper);
         this.form.appendChild(this.submitBtn);
@@ -74,9 +75,9 @@ export default class LoginViewComponent extends HTMLElement {
         const style = document.createElement("style");
         style.textContent = `
             .login-container {
-                width: 300px;
+                width: 340px;
                 margin: 50px auto;
-                padding: 20px;
+                padding: 25px;
                 border: 1px solid #ccc;
                 border-radius: 10px;
                 background: #f9f9f9;
@@ -86,6 +87,7 @@ export default class LoginViewComponent extends HTMLElement {
             .login-container h2 {
                 text-align: center;
                 margin-bottom: 20px;
+                color: #333;
             }
             .login-container form {
                 display: flex;
@@ -94,36 +96,47 @@ export default class LoginViewComponent extends HTMLElement {
             .input-wrapper {
                 display: flex;
                 flex-direction: column;
-                margin: 8px 0;
+                margin: 10px 0;
             }
             .login-container input {
-                padding: 10px;
+                padding: 12px;
                 border: 1px solid #aaa;
                 border-radius: 5px;
                 font-size: 14px;
+                transition: border-color 0.3s ease;
             }
             .login-container input:focus {
                 outline: none;
                 border-color: #007BFF;
                 box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
             }
+            .login-container input.error-input {
+                border-color: #dc3545;
+            }
             .error-message {
                 color: #dc3545;
                 font-size: 12px;
-                margin-top: 3px;
+                margin-top: 5px;
+                padding: 5px 8px;
+                background: #f8d7da;
+                border-radius: 3px;
+                border-left: 3px solid #dc3545;
                 display: none;
             }
             .error-message.show {
                 display: block;
             }
             .login-container button {
-                padding: 10px;
-                margin-top: 12px;
+                padding: 12px;
+                margin-top: 15px;
                 background: #007BFF;
                 color: white;
                 border: none;
                 border-radius: 5px;
                 cursor: pointer;
+                font-weight: bold;
+                font-size: 14px;
+                transition: background 0.3s ease;
             }
             .login-container button:hover {
                 background: #0056b3;
@@ -134,18 +147,24 @@ export default class LoginViewComponent extends HTMLElement {
             }
             .message-box {
                 margin-top: 15px;
+                padding: 10px;
                 font-size: 14px;
                 text-align: center;
+                border-radius: 5px;
                 display: none;
             }
             .message-box.show {
                 display: block;
             }
             .message-box.success {
-                color: #28a745;
+                color: #155724;
+                background: #d4edda;
+                border: 1px solid #c3e6cb;
             }
             .message-box.error {
-                color: #dc3545;
+                color: #721c24;
+                background: #f8d7da;
+                border: 1px solid #f5c6cb;
             }
             .register-container {
                 margin-top: 15px;
@@ -208,8 +227,11 @@ export default class LoginViewComponent extends HTMLElement {
     clearFieldErrors() {
         this.emailError.textContent = "";
         this.emailError.classList.remove("show");
+        this.inputEmail.classList.remove("error-input");
+        
         this.passwordError.textContent = "";
         this.passwordError.classList.remove("show");
+        this.inputPassword.classList.remove("error-input");
     }
 
     showFieldErrors(fieldErrors) {
@@ -218,16 +240,23 @@ export default class LoginViewComponent extends HTMLElement {
         if (fieldErrors.email) {
             this.emailError.textContent = this.formatErrorMessage(fieldErrors.email);
             this.emailError.classList.add("show");
+            this.inputEmail.classList.add("error-input");
         }
 
         if (fieldErrors.password) {
             this.passwordError.textContent = this.formatErrorMessage(fieldErrors.password);
             this.passwordError.classList.add("show");
+            this.inputPassword.classList.add("error-input");
         }
 
         if (fieldErrors.validation) {
             this.passwordError.textContent = fieldErrors.validation;
             this.passwordError.classList.add("show");
+            this.inputPassword.classList.add("error-input");
+        }
+
+        if (fieldErrors.general) {
+            this.showMessage(fieldErrors.general, "error");
         }
     }
 
