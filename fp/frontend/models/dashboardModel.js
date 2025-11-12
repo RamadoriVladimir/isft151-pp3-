@@ -188,7 +188,7 @@ export default class DashboardModel {
                     "Authorization": `Bearer ${this.token}`
                 },
                 body: JSON.stringify(moldData)
-            });
+            }); 
 
             if (!res.ok) {
                 if (res.status === 401) {

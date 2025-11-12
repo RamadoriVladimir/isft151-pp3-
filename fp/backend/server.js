@@ -145,7 +145,6 @@ class Server {
             
             this.wsServer = new CollaborativeWebSocketServer(this.httpServer);
             
-            // Escuchar en todas las interfaces de red (0.0.0.0)
             this.httpServer.listen(this.port, '0.0.0.0', function() {
                 console.log(`\n=== Servidor iniciado exitosamente ===`);
                 console.log(`📡 Servidor HTTP corriendo en puerto: ${this.port}`);
@@ -153,7 +152,6 @@ class Server {
                 console.log(`\n📍 Acceso local:`);
                 console.log(`   http://localhost:${this.port}`);
                 
-                // Obtener las IPs de red local
                 const networkInterfaces = os.networkInterfaces();
                 const addresses = [];
                 
